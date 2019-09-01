@@ -1,18 +1,5 @@
 print("GasCounter node started!")
 
---[[
-
-	Sleep cycle 0 begins at midnight. End of cycle 7 ends also at midnight.
-	Each cycle lasts 3 hours; at the end of each cycle, data from the AVR is 
-	dumped into the RTC memory.
-	At the end of cycle 7, which should occur around midnight, all RTC
-	memory is transferred to server and the sleep cycle is synchronized.
-
-	Sleep cycle information is stored in RTC memory slot 0.
-	Data logged by AVR is stored from slots 1-80 totalling 320 bytes per day.	
-
-]]--
-
 local cycle = rtcmem_get_sleep_cycle()
 
 if cycle == nil then
