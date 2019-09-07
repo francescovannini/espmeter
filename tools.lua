@@ -128,12 +128,12 @@ function rtcmem_clear_log()
   end  
 end
 
-function enter_sleep_cycle(cycle, sleep_seconds, wifiresume)
+function enter_sleep_cycle(cycle, cycle_length, wifiresume)
   if (wifiresume) then
-	    print("Sleeping " .. sleep_seconds .. " seconds. Wi-Fi will turn on after wake up.")
-    node.dsleep(1000000 * sleep_seconds)
+	    print("Sleeping " .. cycle_length .. " seconds. Wi-Fi will turn on after wake up.")
+    node.dsleep(1000000 * cycle_length)
   else
-    print("Sleeping " .. sleep_seconds .. " seconds. Wi-Fi will stay off after wake up.")
-    node.dsleep(1000000 * sleep_seconds, 4)
+    print("Sleeping " .. cycle_length .. " seconds. Wi-Fi will stay off after wake up.")
+    node.dsleep(1000000 * cycle_length, 4)
   end
 end

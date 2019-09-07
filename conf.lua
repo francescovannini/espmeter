@@ -16,5 +16,5 @@ conf.net.api_endpoint = "http://raspitest/gascounter_web/post.php"
 
 conf.sleep = {}
 conf.sleep.initial_cycle = 0
---conf.sleep.sleep_seconds = 3 * 60 * 60
-conf.sleep.sleep_seconds = 10
+conf.sleep.cycle_length = 3 * 60 * 60
+

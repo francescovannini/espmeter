@@ -2,8 +2,8 @@ print("GasCounter node started!")
 
 local cycle = rtcmem_get_sleep_cycle()
 
-if cycle == nil then
-	print("Sleep cycle uninitialized, getting it from server.")	
+if node.bootreason() == 0 or cycle == nil then
+	print("Syncronizing sleep plan with server...")	
 	do_api_call(false)	
 else	
 	print("Completed sleep cycle #" .. cycle)	
@@ -18,7 +18,7 @@ else
 		cycle = cycle + 1
 		rtcmem_set_sleep_cycle(cycle)	
 		print("Beginning sleep cycle #" .. cycle)
-		enter_sleep_cycle(cycle, conf.sleep.sleep_seconds, cycle == 7)
+		enter_sleep_cycle(cycle, conf.sleep.cycle_length, cycle == 7)
 	end
 end
 
