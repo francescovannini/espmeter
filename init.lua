@@ -56,7 +56,7 @@
 
 
 print("Grace period before starting...")
-tmr.create():alarm(5000, tmr.ALARM_SINGLE, function()
+tmr.create():alarm(2000, tmr.ALARM_SINGLE, function()
     dofile('conf.lc')
     dofile('tools.lc')
     dofile('webapi.lc')

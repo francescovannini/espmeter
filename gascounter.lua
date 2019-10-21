@@ -8,7 +8,7 @@ if node.bootreason() == 0 or cycle == nil then
 else	
 	print("Completed sleep cycle #" .. cycle)	
 	local log = tiny_read_log()
-	print(dump(log))
+	print("Data from tiny:" .. dump(log))
 	rtcmem_write_log_slot(cycle, log)
 
 	if cycle == 7 then

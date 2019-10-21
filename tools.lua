@@ -45,8 +45,6 @@ function tiny_read_log()
   local slv = 0x5d
   local i
   local data32 = {}
-
-  print("Getting data from I2C bus...")
   
   i2c.setup(id, sda, scl, i2c.SLOW)
   i2c.address(id, slv, i2c.RECEIVER)
@@ -54,10 +52,18 @@ function tiny_read_log()
 
   local byte = 0
   local temp = 0
+  local checksum_calculated = 64
+  local checksum_received
 
   -- Encodes the 40 bytes into 10 32-bit integers
   for i = 1, #rec do
     local b = string.byte(rec:sub(i, i))
+    
+    if b < 40 then
+      checksum_calculated = checksum_calculated + b
+    end
+    
+    print("I2C byte " .. (i - 1) .. ":" .. b)
 
     temp = temp + b * 2 ^ (8 * byte)
     byte = byte + 1
@@ -69,6 +75,13 @@ function tiny_read_log()
     end
   end
   
+  checksum_calculated = checksum_calculated % 256
+  checksum_received = string.byte(rec:sub(#rec, #rec))
+
+  if not (checksum_received == checksum_calculated) then
+    print("CHECKSUM ERROR! Calculated: " .. checksum_calculated .. " - Received:" .. checksum_received)
+  end
+
   return data32
 
 end
@@ -104,20 +117,36 @@ function rtcmem_set_sleep_cycle(cycle)
 end
 
 function rtcmem_write_log_slot(slot, data32)
-  rtcmem.write32(rtc_mem_log_address + (slot * 10), data32[1], data32[2], data32[3], data32[4], data32[5], data32[6], data32[7], data32[8], data32[9], data32[10])
+  local i
+  local t
+  for i = 1, 10 do 
+    t = rtc_mem_log_address + (slot * 10) + (i - 1)
+    print("Writing " .. data32[i] .. " at RTC memory location " .. t)
+    rtcmem.write32(t, data32[i])
+  end
 end
 
-function rtcmem_read_log()
+function rtcmem_read_log_json()
   local i
-  local data32 = ""
+  local t
+  local v
+  local log = '{"log":['
 
-  for i = 0, 79 do   
-    data32 = data32 .. rtcmem.read32(rtc_mem_log_address + i)
+  for i = 0, 79 do
+    t = rtc_mem_log_address + i
+    v = rtcmem.read32(t)
+    print("Read " .. v .. " at RTC memory location " .. t)
+    log = log .. v
     if i < 79 then
-       data32 = data32 .. ","
+       log = log .. ','
     end
   end
-  return data32
+
+  log = log .. ']}'
+
+  print("Generated log: " .. log)
+
+  return log 
 end
 
 function rtcmem_clear_log()

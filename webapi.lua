@@ -32,7 +32,7 @@ function do_api_call(include_data)
 
 		local content = ""
 		if include_data then
-			content = '{"log":[' .. rtcmem_read_log() .. "]}"
+			content = rtcmem_read_log_json()
 			print("Posting content: " .. content)
 		end
 					
