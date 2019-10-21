@@ -34,8 +34,8 @@ register uint8_t TWSR asm("r2");;
 register uint8_t TWDR asm("r3");;
 register uint8_t TWEA asm("r4");;
 
-#define MAX_READ_SIZE 40
-volatile uint8_t output_buffer[MAX_READ_SIZE];
+#define TWI_BUFFER_SIZE 40
+volatile uint8_t output_buffer[TWI_BUFFER_SIZE];
 
 /* TWI state machine macros */
 # define TWI_SLA_REQ_W_ACK_RTD              0x60

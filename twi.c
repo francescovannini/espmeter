@@ -20,6 +20,11 @@ void twi_slave_enable(void) {
 ISR(PCINT0_vect) {
 
     if (TWSR == I2C_IDLE) {
+        // Calculate checksum
+        output_buffer[TWI_BUFFER_SIZE - 1] = 64;
+        for (output_buffer_read_index = 0; output_buffer_read_index < TWI_BUFFER_SIZE - 1; output_buffer_read_index++) {
+            output_buffer[TWI_BUFFER_SIZE - 1] += output_buffer[output_buffer_read_index];
+        }
         get_start_condition();
     }
 
@@ -40,7 +45,7 @@ ISR(PCINT0_vect) {
 
             // data has been transmitted, ACK has been received.
         case TWI_SLA_DATA_SND_ACK_RCV:
-            if (output_buffer_read_index < MAX_READ_SIZE) {
+            if (output_buffer_read_index < TWI_BUFFER_SIZE) {
                 TWDR = output_buffer[output_buffer_read_index];
                 output_buffer[output_buffer_read_index] = 0;
                 output_buffer_read_index++;
@@ -88,7 +93,7 @@ inline uint8_t read_byte(void) {
     // Let SCL go low first. MCU comes here while SCL is still high
     while (GET_SCL());
 
-    //R ead 8 bits from master, respond with ACK. SCL could be high or low depending on CPU speed
+    //Read 8 bits from master, respond with ACK. SCL could be high or low depending on CPU speed
     for (uint8_t index = 0; index < 8; index++) {
 
         while (!GET_SCL());

@@ -27,12 +27,14 @@
 #define rbi(sfr, bit) (((sfr)>>(bit)) & 1)
 #endif
 
+#define FL_WD_TRIGGERED     0   // IC has been woken up by watchdog
+#define FL_PREV_SENSOR_VAL  1   // previous sensor reading
+
 #define LOG_HOURS           3
 #define LOG_FRAME_MINUTES   5
-#define LOG_FRAMES          LOG_HOURS * 60 / LOG_FRAME_MINUTES
+#define LOG_FRAMES          (LOG_HOURS * 60 / LOG_FRAME_MINUTES)
 
 typedef struct pulse_log_t {
-    uint8_t checksum;
     uint8_t vcc;
     uint16_t ticks;
     uint8_t frames[LOG_FRAMES];

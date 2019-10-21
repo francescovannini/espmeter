@@ -4,10 +4,10 @@
 #include "main.h"
 #include "twi.h"
 
-_Static_assert(sizeof(pulse_log_t) == MAX_READ_SIZE, "pulse_log_t must be MAX_READ_SIZE size");
+_Static_assert(sizeof(pulse_log_t) == TWI_BUFFER_SIZE - 1, "pulse_log_t size must be equal to TWI_BUFFER_SIZE - 1");
 
 extern volatile uint8_t output_buffer[];
-volatile uint8_t wd_triggered = 0;
+volatile uint8_t flags;
 
 void readVccVoltage(uint8_t *vcc) {
 
@@ -31,18 +31,14 @@ void readVccVoltage(uint8_t *vcc) {
 
 /* Watchdog service routine called at about @2Hz*/
 ISR(WDT_vect) {
-    wd_triggered = 1;
+    sbi(flags, FL_WD_TRIGGERED);
 }
 
 int main(void) {
 
     pulse_log_t *pulse_log = (pulse_log_t*) &output_buffer;
-    uint8_t sensor_output_prev = 0;
-
     pulse_log->ticks = 0;
-    for (uint8_t i = 0; i < LOG_FRAMES; i++) {
-        pulse_log->frames[i] = 0;
-    }
+    uint8_t i;
 
     // Watchdog prescaler @1Hz
     WDTCR |= (1 << WDP2) | (1 << WDP1);
@@ -66,10 +62,10 @@ int main(void) {
         sleep_disable();
 
         // System woken up by I2C?
-        if (!wd_triggered)
+        if (!rbi(flags, FL_WD_TRIGGERED))
             continue;
 
-        wd_triggered = 0;
+        cbi(flags, FL_WD_TRIGGERED);
 
         // Log space is exhausted?
         if (pulse_log->ticks < LOG_HOURS * 60 * 60) {
@@ -91,14 +87,12 @@ int main(void) {
             if (!rbi(CONTROL_PORT_PINS, SENSOR_PIN)) {
 
                 // Check if pulse not already accounted
-                if (!sensor_output_prev) {
+                if (!cbi(flags, FL_PREV_SENSOR_VAL)) {
                     pulse_log->frames[pulse_log->ticks / 60 * LOG_FRAME_MINUTES]++;
                 }
-
-                sensor_output_prev = 1;
-
+                sbi(flags, FL_PREV_SENSOR_VAL);
             } else {
-                sensor_output_prev = 0;
+                cbi(flags, FL_PREV_SENSOR_VAL);
             }
 
             // Turn-off sensor
@@ -106,10 +100,5 @@ int main(void) {
 
         }
 
-        // Calculate checksum
-        pulse_log->checksum = 64;
-        for (uint8_t i = 1; i < MAX_READ_SIZE; i++) {
-            pulse_log->checksum += output_buffer[i];
-        }
     }
 }
