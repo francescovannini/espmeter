@@ -30,35 +30,27 @@
 #define TWI_INT_CLEAR_FLAG()    (GIFR = (1 << PCIF))
 
 // Dedicated general purpose registers.
-register uint8_t TWSR asm("r2");;
-register uint8_t TWDR asm("r3");;
-register uint8_t TWEA asm("r4");;
+register uint8_t TWSR asm("r2");
+register uint8_t TWDR asm("r3");
 
-#define TWI_BUFFER_SIZE 40
-volatile uint8_t output_buffer[TWI_BUFFER_SIZE];
+#define I2C_BUFFER_SIZE     39
+volatile uint8_t i2c_buffer[I2C_BUFFER_SIZE];
+volatile register uint8_t i2c_buffer_idx asm("r4");
 
 /* TWI state machine macros */
 # define TWI_SLA_REQ_W_ACK_RTD              0x60
-# define TWI_SLA_DATA_RCV_ACK_RTD           0x80
-# define TWI_SLA_DATA_RCV_NACK_RTD          0x88
-
 # define TWI_SLA_REQ_R_ACK_RTD              0xA8
 # define TWI_SLA_DATA_SND_ACK_RCV           0xB8
 # define TWI_SLA_DATA_SND_NACK_RCV          0xC0
 # define TWI_SLA_LAST_DATA_SND_ACK_RCV      0xC8
-
 # define TWI_SLA_REPEAT_START               0xA0
 # define TWI_SLA_STOP                       0x68
 # define I2C_IDLE                           0x00
 
 uint8_t read_byte(void);
-
 void twi_slave_init(void);
-
 void twi_slave_enable(void);
-
 void send_data(void);
-
 void get_start_condition(void);
 
 #endif //__TWI_H
