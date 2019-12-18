@@ -1,13 +1,6 @@
-function begin_sleep_cycle(cycle, cycle_length)
-	print("Next sleeping plan: current cycle=" .. tostring(cycle) .. ", seconds left=" .. tostring(cycle_length))
-	rtcmem_clear_log()
-	rtcmem_set_sleep_cycle(cycle)			
-	enter_sleep_cycle(cycle, cycle_length, cycle == 7)
-end
-
 function do_api_call(include_data)
 
-	print("Initializing Wi-Fi connection")
+	print("Initializing Wi-Fi connection...")
 
 	if conf.net.dns_primary_server then
 		net.dns.setdnsserver(conf.net.dns_primary_server, 0)
@@ -20,7 +13,7 @@ function do_api_call(include_data)
 	local wifi_timeout_timer = tmr.create()
 	wifi_timeout_timer:alarm(60000, tmr.ALARM_SINGLE, function()
 		print("Wi-Fi connection can't be established. Giving up.")
-		begin_sleep_cycle(conf.sleep.initial_cycle, conf.sleep.cycle_length)
+		deep_sleep(conf.sleep.initial_cycle, conf.sleep.cycle_length, false, true)
 	end)
 
 	wifi.setmode(wifi.STATION)
@@ -39,23 +32,34 @@ function do_api_call(include_data)
 		http.post(conf.net.api_endpoint, 'Content-Type: application/json\r\n', content, function(code, response, headers)
 			print("HTTP Response", code)
 			print("HTTP Content", response)
-			
+
 			local cycle = conf.sleep.initial_cycle 
 			local cycle_seconds_left = conf.sleep.cycle_length
 
 			if code == 200 then
 				t = sjson.decode(response)
 				for k, v in pairs(t) do 
-					if k == "time" then
-						cycle = math.floor(v / conf.sleep.cycle_length)
-						cycle_seconds_left = conf.sleep.cycle_length - (v % conf.sleep.cycle_length)
+
+					if k == "time" then						
+						rtctime.set(v, 0)
+						tm = rtctime.epoch2cal(rtctime.get())
+						print(string.format("RTC time is now: %04d/%02d/%02d %02d:%02d:%02d", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"]))
+					end
+
+					if k == "cycle_number" then
+						print("Cycle number from server: " .. v)
+						cycle = v
+					end
+
+					if k == "cycle_seconds_left" then
+						print("Cycle seconds left from server: " .. v)
+						cycle_seconds_left = v
 					end
 				end
 			else
 				print("Received HTTP response different from 200, using predefined sleep plan")
 			end
-			begin_sleep_cycle(cycle, cycle_seconds_left)
+			deep_sleep(cycle, cycle_seconds_left, cycle == 7, true)
 		end)
 	end)
 end
-

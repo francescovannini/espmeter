@@ -1,0 +1,3 @@
+da testare se rtc sleep e' migliore 
+comunque resta il problema dell'imprecisione del clock che di solito sembra che anticipi un po 
+potrebbe essere ok avere il ciclo 8 che serve per compensare; alla fine del ciclo 8 non si scarica il log dal tiny cosi' se ci sono stati ticks, vanno nel ciclo 0 pero' e' una soluzione un po' sprecisa (sempre che nel tiny ci sia abbastanza spazio, da verificare)

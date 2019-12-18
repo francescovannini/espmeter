@@ -63,7 +63,7 @@ function tiny_read_log()
       checksum_calculated = checksum_calculated + b
     end
     
-    print("I2C byte " .. (i - 1) .. ":" .. b)
+    --print("I2C byte " .. (i - 1) .. ":" .. b)
 
     temp = temp + b * 2 ^ (8 * byte)
     byte = byte + 1
@@ -121,7 +121,7 @@ function rtcmem_write_log_slot(slot, data32)
   local t
   for i = 1, 10 do 
     t = rtc_mem_log_address + (slot * 10) + (i - 1)
-    print("Writing " .. data32[i] .. " at RTC memory location " .. t)
+    --print("Writing " .. data32[i] .. " at RTC memory location " .. t)
     rtcmem.write32(t, data32[i])
   end
 end
@@ -135,7 +135,7 @@ function rtcmem_read_log_json()
   for i = 0, 79 do
     t = rtc_mem_log_address + i
     v = rtcmem.read32(t)
-    print("Read " .. v .. " at RTC memory location " .. t)
+    --print("Read " .. v .. " at RTC memory location " .. t)
     log = log .. v
     if i < 79 then
        log = log .. ','
@@ -144,7 +144,7 @@ function rtcmem_read_log_json()
 
   log = log .. ']}'
 
-  print("Generated log: " .. log)
+  --print("Generated log: " .. log)
 
   return log 
 end
@@ -157,12 +157,27 @@ function rtcmem_clear_log()
   end  
 end
 
-function enter_sleep_cycle(cycle, cycle_length, wifiresume)
-  if (wifiresume) then
-	    print("Sleeping " .. cycle_length .. " seconds. Wi-Fi will turn on after wake up.")
-    node.dsleep(1000000 * cycle_length)
-  else
-    print("Sleeping " .. cycle_length .. " seconds. Wi-Fi will stay off after wake up.")
-    node.dsleep(1000000 * cycle_length, 4)
+function deep_sleep(cycle, cycle_length, wifiresume, clear_log)
+
+  rtcmem_set_sleep_cycle(cycle)
+
+  if (clear_log) then
+    rtcmem_clear_log()
   end
+
+  if (wifiresume) then
+    print("Enter deep sleep cycle " .. tostring(cycle) .. " (" .. tostring(cycle_length) .. " s). Wi-Fi will be turned on at wake-up.")
+    opt = nil
+  else
+    print("Enter deep sleep cycle " .. tostring(cycle) .. " (" .. tostring(cycle_length) .. " s).")
+    opt = 4
+  end
+
+  local t = tmr.create()
+	t:alarm(1000, tmr.ALARM_SINGLE, function()
+    rtctime.dsleep(1000000 * cycle_length, opt)
+  end)
+  
+  do return end
+
 end
