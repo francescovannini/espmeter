@@ -23,18 +23,12 @@ function tiny_read_log()
   
     local byte = 0
     local temp = 0
-    local checksum_calculated = 64
-    local checksum_received
   
     -- Encodes the 40 bytes into 10 32-bit integers
     for i = 1, #rec do
       local b = string.byte(rec:sub(i, i))
       
-      if b < 40 then
-        checksum_calculated = checksum_calculated + b
-      end
-      
-      --print("I2C byte " .. (i - 1) .. ":" .. b)
+      print("I2C byte " .. (i - 1) .. ":" .. b)
   
       temp = temp + b * 2 ^ (8 * byte)
       byte = byte + 1
@@ -45,16 +39,8 @@ function tiny_read_log()
         byte = 0
       end
     end
-    
-    checksum_calculated = checksum_calculated % 256
-    checksum_received = string.byte(rec:sub(#rec, #rec))
-  
-    if not (checksum_received == checksum_calculated) then
-      print("CHECKSUM ERROR! Calculated: " .. checksum_calculated .. " - Received:" .. checksum_received)
-    end
   
     return data32
   
   end
 
-  
