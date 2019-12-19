@@ -1,4 +1,5 @@
 conf = {}
+conf.tz = "brussels.zone"
 
 conf.wifi = {}
 conf.wifi.auto = false
@@ -13,6 +14,10 @@ conf.net.gateway = "192.168.1.1"
 conf.net.dns_primary_server = "192.168.1.64"
 conf.net.dns_secondary_server = "192.168.1.64"
 conf.net.api_endpoint = "http://raspitest/gascounter_web/post.php"
+
+conf.net.ntp = {}
+conf.net.ntp.server = nil
+conf.net.ntp.enabled = true
 
 conf.sleep = {}
 conf.sleep.initial_cycle = 0

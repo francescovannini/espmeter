@@ -1,6 +1,6 @@
 print("GasCounter node started!")
 
-tm = rtctime.epoch2cal(rtctime.get())
+local tm = rtctime.epoch2cal(tz.gettime())
 print(string.format("Current time: %04d/%02d/%02d %02d:%02d:%02d", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"]))
 
 local cycle = rtcmem_get_sleep_cycle()
