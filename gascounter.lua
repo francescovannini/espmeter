@@ -1,14 +1,14 @@
 print("GasCounter node started!")
 
-local tm = rtctime.epoch2cal(tz.gettime())
-print(string.format("Current time: %04d/%02d/%02d %02d:%02d:%02d", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"]))
-
 local cycle = rtcmem_get_sleep_cycle()
 
-if node.bootreason() == 0 or cycle == nil then
+if node.bootreason() == 0 or cycle == nil or rtctime.get() == 0 then
 	print("Fresh boot, syncing with server...")	
 	do_api_call(false)	
-else	
+else
+	local tm = rtctime.epoch2cal(tz.gettime())
+	print(string.format("Current time: %04d/%02d/%02d %02d:%02d:%02d", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"]))
+
 	print("Completed sleep cycle: " .. cycle)
 
 	local log = tiny_read_log()	

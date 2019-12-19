@@ -52,7 +52,6 @@ function load(t)
   end
 end
 
-
 function M.getoffset(t)
   if t < tstart or t >= tend then
     -- Ignore errors
