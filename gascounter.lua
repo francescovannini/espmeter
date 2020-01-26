@@ -1,25 +1,68 @@
-print("GasCounter node started!")
+local M = {}
 
-local cycle = rtcmem_get_sleep_cycle()
+function M.main()
+	local rtctime = require("rtctime")
+	local node = require("node")
+	local memtools = require("memtools")
+	local conf = require("conf")
+	local webapi = require("webapi")
 
-if node.bootreason() == 0 or cycle == nil or rtctime.get() == 0 then
-	print("Fresh boot, syncing with server...")	
-	do_api_call(false)	
-else
-	local tm = rtctime.epoch2cal(tz.gettime())
-	print(string.format("Current time: %04d/%02d/%02d %02d:%02d:%02d", tm["year"], tm["mon"], tm["day"], tm["hour"], tm["min"], tm["sec"]))
+	local _, bootreason = node.bootreason()
 
-	print("Completed sleep cycle: " .. cycle)
+	print("GasCounter node started! Boot reason: " .. tostring(bootreason))
 
-	local log = tiny_read_log()	
-	rtcmem_write_log_slot(cycle, log)
+	local tz = require("tz")
+	tz.setzone(conf.tz)
+	local local_time, local_time_usec, clock_rate_offs = tz.get_local_time()
 
-	if cycle == 7 then		
-		do_api_call(true)
-	else 
-		cycle = cycle + 1
-		deep_sleep(cycle, conf.sleep.cycle_length, cycle == 7, false)
+	if clock_rate_offs then
+		print(string.format("Clock rate offset: %f", clock_rate_offs))
+	end
+
+	if bootreason == 0 or local_time == 0 then
+		print("Clock needs to be set.")
+		webapi.do_api_call(false)
+	else
+		local t = rtctime.epoch2cal(local_time)
+		print(
+			string.format(
+				"Current time: %04d/%02d/%02d %02d:%02d:%02d",
+				t["year"],
+				t["mon"],
+				t["day"],
+				t["hour"],
+				t["min"],
+				t["sec"]
+			)
+		)
+
+		local second_of_day = t["hour"] * 3600 + t["min"] * 60 + t["sec"]
+
+		-- Fetch data from AVR
+		for k, v in pairs(conf.time.poll_avr_at) do
+			if second_of_day < v then
+				memtools.rtcmem_write_log_slot(k - 1, memtools.tiny_read_log())
+				break
+			end
+		end
+
+		-- Do API call
+		if second_of_day > conf.time.transmit_at then
+			webapi.do_api_call(true)
+		else
+			local sleep = require("sleep")
+			sleep.until_next_poll()
+		end
+	end
+
+	do
+		return
 	end
 end
 
-do return end
+-- riscrivere tutto togliendo gli sleep cycles e usare solo il clock aggiustato per semplificare.
+-- uno dei problemi e' che sembra che la sleep non segua il clock o che il clock aggiustato sia consapevole che e' passato meno tempo di quello che la sleep doveva fare.
+-- questo si vede nei log di minicom, in cui anche se la sleep e' di 3600 secondi, quando si sveglia l'orologio e' intorno ai 42 minuti dell'ora.
+-- da provare: nella config, anziche' usare cycles, usare minuti o secondi dalla mezzanotte, quando il clock e' maggiore, eseguire il poll
+
+return M

@@ -6,6 +6,9 @@ local tstart = 0
 local tend = 0
 local toffset = 0
 local thezone = "brussels.zone"
+local rtctime = require("rtctime")
+local file = require("file")
+local struct = require("struct")
 
 function M.setzone(zone)
   thezone = zone
@@ -16,69 +19,79 @@ function M.exists(zone)
   return file.exists(zone)
 end
 
-function load(t)
+local function load(t)
   local z = file.open(thezone, "r")
 
   local hdr = z:read(20)
   local magic = struct.unpack("c4 B", hdr)
 
   if magic == "TZif" then
-      local lens = z:read(24)
-      local ttisgmt_count, ttisdstcnt, leapcnt, timecnt, typecnt, charcnt = struct.unpack("> LLLLLL", lens)
+    local lens = z:read(24)
+    local ttisgmt_count, ttisdstcnt, leapcnt, timecnt, typecnt, charcnt = struct.unpack("> LLLLLL", lens)
 
-      local times = z:read(4 * timecnt)
-      local typeindex = z:read(timecnt)
-      local ttinfos = z:read(6 * typecnt)
+    local times = z:read(4 * timecnt)
+    local typeindex = z:read(timecnt)
+    local ttinfos = z:read(6 * typecnt)
 
-      z:close()
+    z:close()
 
-      local offset = 1
-      local tt
-      for i = 1, timecnt do
-        tt = struct.unpack(">l", times, (i - 1) * 4 + 1)
-        if t < tt then
-          offset = (i - 2)
-          tend = tt
-          break
-        end
-        tstart = tt
+    local offset = 1
+    local tt
+    for i = 1, timecnt do
+      tt = struct.unpack(">l", times, (i - 1) * 4 + 1)
+      if t < tt then
+        offset = (i - 2)
+        tend = tt
+        break
       end
+      tstart = tt
+    end
 
-      local tindex = struct.unpack("B", typeindex, offset + 1)
-      toffset = struct.unpack(">l", ttinfos, tindex * 6 + 1)
+    local tindex = struct.unpack("B", typeindex, offset + 1)
+    toffset = struct.unpack(">l", ttinfos, tindex * 6 + 1)
   else
-      tend = 0x7fffffff
-      tstart = 0
+    tend = 0x7fffffff
+    tstart = 0
   end
 end
 
 function M.getoffset(t)
   if t < tstart or t >= tend then
     -- Ignore errors
-    local ok, msg = pcall(function ()
+    local ok, msg =
+      pcall(
+      function()
         load(t)
-    end)
+      end
+    )
     if not ok then
-      print (msg)
+      print(msg)
     end
   end
 
   return toffset, tstart, tend
 end
 
-function M.gettime()
-	local t = rtctime.get()
+function M.get_local_time()
+  local sec, usec, rate = rtctime.get()
 
-	if t < tstart or t >= tend then
+  if sec == 0 then
+    return 0
+  end
+
+  if sec < tstart or sec >= tend then
     -- Ignore errors
-    local ok, msg = pcall(function ()
-        load(t)
-    end)
+    local ok, msg =
+      pcall(
+      function()
+        load(sec)
+      end
+    )
     if not ok then
-      print (msg)
+      print(msg)
     end
   end
-  return toffset + t
+  return toffset + sec, usec, rate
 end
 
 return M
