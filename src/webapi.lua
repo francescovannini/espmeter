@@ -11,7 +11,7 @@ local sleep = require("sleep")
 local wifi = require("wifi")
 local sntp = require("sntp")
 
-local function do_post(include_data)
+local function do_post(include_data, wifi_wakeup_on)
 	local content = nil
 
 	if include_data then
@@ -23,7 +23,7 @@ local function do_post(include_data)
 		conf.net.api_endpoint,
 		"Content-Type: application/json\r\n",
 		content,
-		function(code, response, headers)
+		function(code, response, _)
 
 			if not response then
 				response = ""
@@ -35,7 +35,8 @@ local function do_post(include_data)
 				local kv = sjson.decode(response)
 				for k, v in pairs(kv) do
 					if k == "time" then
-						rtctime.set(v, 0)
+						local sec, usec = string.match(v, "([^.]*)%.([^.]*)")
+						rtctime.set(sec, usec)
 						local tm = rtctime.epoch2cal(tz.get_local_time())
 						print(
 							string.format(
@@ -54,12 +55,12 @@ local function do_post(include_data)
 				print("Error during POST.")
 			end
 
-			sleep.until_next_poll()
+			sleep.until_next_poll(wifi_wakeup_on)
 		end
 	)
 end
 
-function M.do_api_call(include_data)
+function M.do_api_call(include_data, wifi_wakeup_on)
 	print("Setting up Wi-Fi connection...")
 
 	if conf.net.dns_primary_server then
@@ -76,7 +77,7 @@ function M.do_api_call(include_data)
 		tmr.ALARM_SINGLE,
 		function()
 			print("Wi-Fi connection can't be established. Giving up.")
-			sleep.until_next_poll()
+			sleep.until_next_poll(wifi_wakeup_on)
 		end
 	)
 
@@ -91,8 +92,7 @@ function M.do_api_call(include_data)
 				print("Attempting SNTP time sync.")
 				sntp.sync(
 					conf.net.ntp.server,
-					function(sec, usec, server, info)
-						rtctime.set(sec, usec)
+					function(_, _, server, _)
 						local tm = rtctime.epoch2cal(tz.get_local_time())
 						print(
 							string.format(
@@ -108,18 +108,18 @@ function M.do_api_call(include_data)
 						)
 
 						if include_data then
-							do_post(include_data)
+							do_post(include_data, wifi_wakeup_on)
 						else
-							sleep.until_next_poll()
+							sleep.until_next_poll(wifi_wakeup_on)
 						end
 					end,
-					function(reason, info)
+					function(reason, _)
 						print("SNTP sync failed: " .. tostring(reason) .. ". Giving up.")
 						sleep.until_next_poll()
 					end
 				)
 			else
-				do_post(include_data)
+				do_post(include_data, wifi_wakeup_on)
 			end
 		end
 	)

@@ -13,16 +13,19 @@ function M.main()
 
 	local tz = require("tz")
 	tz.setzone(conf.tz)
-	local local_time, local_time_usec, clock_rate_offs = tz.get_local_time()
+	local local_time, _, clock_rate_offs = tz.get_local_time()
 
 	if clock_rate_offs then
 		print(string.format("Clock rate offset: %f", clock_rate_offs))
+	else
+		print("Clock rate offset not set")
 	end
 
-	if bootreason == 0 or local_time == 0 then
+	if bootreason == 0 or local_time == 0 or clock_rate_offs == nil or clock_rate_offs == 0 then
 		print("Clock needs to be set.")
-		webapi.do_api_call(false)
+		webapi.do_api_call(false, true)
 	else
+	
 		local t = rtctime.epoch2cal(local_time)
 		print(
 			string.format(
@@ -48,7 +51,7 @@ function M.main()
 
 		-- Do API call
 		if second_of_day > conf.time.transmit_at then
-			webapi.do_api_call(true)
+			webapi.do_api_call(true, false)
 		else
 			local sleep = require("sleep")
 			sleep.until_next_poll()
@@ -59,10 +62,5 @@ function M.main()
 		return
 	end
 end
-
--- riscrivere tutto togliendo gli sleep cycles e usare solo il clock aggiustato per semplificare.
--- uno dei problemi e' che sembra che la sleep non segua il clock o che il clock aggiustato sia consapevole che e' passato meno tempo di quello che la sleep doveva fare.
--- questo si vede nei log di minicom, in cui anche se la sleep e' di 3600 secondi, quando si sveglia l'orologio e' intorno ai 42 minuti dell'ora.
--- da provare: nella config, anziche' usare cycles, usare minuti o secondi dalla mezzanotte, quando il clock e' maggiore, eseguire il poll
 
 return M

@@ -1,4 +1,5 @@
 local rtc_mem_log_address = 46
+
 local rtcmem = require("rtcmem")
 
 local M = {}
@@ -47,6 +48,13 @@ function M.rtcmem_clear_log()
 	end
 end
 
+function M.rtcmem_clear_rtctime_data()
+	print("Clearing RTCTime data...")
+	for i = 0, 9 do
+		rtcmem.write32(i, 0xFF)
+	end
+end
+
 --[[
 typedef struct pulse_log_t {
 	uint8_t vcc;
@@ -77,12 +85,12 @@ function M.rtcmem_read_log_json()
 	end
 
 	local valid_cycles = 0
-	for cycle_idx, cycle in pairs(cycles) do
+	for cycle_idx, status in pairs(cycles) do
 		local intbuf
 		local checksum = 64
 		local logbuf
 
-		for byte_idx, byte in pairs(cycle) do
+		for byte_idx, byte in pairs(status) do
 			if byte_idx < 40 then
 				checksum = checksum + byte
 			end

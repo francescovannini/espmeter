@@ -22,7 +22,7 @@ else
 
     conf.net.ntp = {}
     conf.net.ntp.server = nil
-    conf.net.ntp.enabled = false
+    conf.net.ntp.enabled = true
 
     conf.time = {}
     conf.time.sleep_time = 3600

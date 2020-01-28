@@ -1,4 +1,5 @@
 #!/bin/bash
+cd src
 nodemcu-uploader file remove init.lua
 
 if [ -z "$1" ]; then
