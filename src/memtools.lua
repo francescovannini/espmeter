@@ -1,5 +1,5 @@
-local rtc_mem_log_address = 46
-
+local rtc_mem_log_address = 11
+local rtc_mem_rtc_time_cal_address = 10
 local rtcmem = require("rtcmem")
 
 local M = {}
@@ -32,6 +32,20 @@ local function int8_to_32(a, b, c, d)
 	return v
 end
 
+function M.rtcmem_get_clock_calibration_status()
+	local status, status_a, status_b, status_c
+	status, status_a, status_b, status_c = int32_to_8(rtcmem.read32(rtc_mem_rtc_time_cal_address))
+	if (status == status_a - 1) and (status == status_b - 2) and (status == status_c - 3) then
+		return status
+	else
+		return nil
+	end
+end
+
+function M.rtcmem_set_clock_calibration_status(cycle)
+	rtcmem.write32(rtc_mem_rtc_time_cal_address, int8_to_32(cycle, cycle + 1, cycle + 2, cycle + 3))
+end
+
 function M.rtcmem_write_log_slot(slot, data32)
 	local t
 	for i = 1, 10 do
@@ -48,10 +62,18 @@ function M.rtcmem_clear_log()
 	end
 end
 
-function M.rtcmem_clear_rtctime_data()
+function M.rtcmem_erase()
 	print("Clearing RTCTime data...")
-	for i = 0, 9 do
-		rtcmem.write32(i, 0xFF)
+	for i = 0, 127 do
+		rtcmem.write32(i, 0)
+	end
+end
+
+function M.rtcmem_dump()
+	print("Content of RTC memory:")
+	for i = 0, 127 do
+		local a, b, c, d = int32_to_8(rtcmem.read32(i))
+		print(string.format("[%03d] %02x %02x %02x %02x", i, a, b, c, d))
 	end
 end
 

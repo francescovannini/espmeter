@@ -21,11 +21,13 @@ else
     conf.net.api_endpoint = "http://test.francescovannini.com/gascounter_web/post.php"
 
     conf.net.ntp = {}
-    conf.net.ntp.server = nil
-    conf.net.ntp.enabled = true
+    conf.net.ntp.server = "be.pool.ntp.org"
+    conf.net.ntp.enabled = false
 
     conf.time = {}
+    conf.time.timezone = "brussels.zone"
     conf.time.sleep_time = 3600
+    conf.time.calibration_sleep_time = 300
     conf.time.transmit_at = conf.time.sleep_time * 24
     conf.time.poll_avr_at = {
         0,

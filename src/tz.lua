@@ -55,7 +55,7 @@ local function load(t)
   end
 end
 
-function M.getoffset(t)
+function M.get_offset(t)
   if t < tstart or t >= tend then
     -- Ignore errors
     local ok, msg =
@@ -76,7 +76,7 @@ function M.get_local_time()
   local sec, usec, rate = rtctime.get()
 
   if sec == 0 then
-    return 0
+    return 0, 0, nil
   end
 
   if sec < tstart or sec >= tend then

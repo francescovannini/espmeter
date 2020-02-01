@@ -1,18 +1,49 @@
 local conf = require("conf")
 local rtctime = require("rtctime")
 local tmr = require("tmr")
+local tz = require("tz")
+tz.setzone(conf.tz)
 
 local M = {}
 
-function M.until_next_poll(wifi_wakeup_on)
+function M.sleep_async(s, wifi_wakeup_on)
 	local wifi_opt = 4 -- OFF by default
-	
 	if wifi_wakeup_on == true then
 		wifi_opt = 0
+	else
+		wifi_wakeup_on = false
 	end
-		
-	local tz = require("tz")
-	tz.setzone(conf.tz)
+
+	local wakeup_cal = rtctime.epoch2cal(tz.get_local_time() + s)
+	print(
+		string.format(
+			"Deep sleep until %04d/%02d/%02d %02d:%02d:%02d (%d seconds from now). Wi-Fi available at wakeup: %s",
+			wakeup_cal["year"],
+			wakeup_cal["mon"],
+			wakeup_cal["day"],
+			wakeup_cal["hour"],
+			wakeup_cal["min"],
+			wakeup_cal["sec"],
+			s,
+			tostring(wifi_wakeup_on)
+		)
+	)
+
+	local tm = tmr.create()
+	tm:alarm(
+		1000,
+		tmr.ALARM_SINGLE,
+		function()
+			rtctime.dsleep(1000000 * (s - 1), wifi_opt)
+		end
+	)
+
+	do
+		return
+	end
+end
+
+function M.until_next_poll(wifi_wakeup_on)
 	local t = rtctime.epoch2cal(tz.get_local_time())
 
 	local second_of_day = t["hour"] * 3600 + t["min"] * 60 + t["sec"]
@@ -41,27 +72,10 @@ function M.until_next_poll(wifi_wakeup_on)
 		end
 
 		sleep_secs = conf.time.transmit_at - second_of_day
-		wifi_opt = 0
+		wifi_wakeup_on = true
 	end
 
-	if wifi_opt == 0 then
-		print(string.format("Deep sleep %d seconds. Wi-Fi on resume: ON", sleep_secs))
-	else
-		print(string.format("Deep sleep %d seconds. Wi-Fi on resume: OFF", sleep_secs))
-	end
-
-	local tm = tmr.create()
-	tm:alarm(
-		1000,
-		tmr.ALARM_SINGLE,
-		function()
-			rtctime.dsleep(1000000 * sleep_secs - 1, wifi_opt)
-		end
-	)
-
-	do
-		return
-	end
+	M.sleep_async(sleep_secs, wifi_wakeup_on) -- Never returns
 end
 
 return M

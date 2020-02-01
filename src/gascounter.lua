@@ -6,42 +6,50 @@ function M.main()
 	local memtools = require("memtools")
 	local conf = require("conf")
 	local webapi = require("webapi")
-
-	local _, bootreason = node.bootreason()
-
-	print("GasCounter node started! Boot reason: " .. tostring(bootreason))
-
 	local tz = require("tz")
-	tz.setzone(conf.tz)
-	local local_time, _, clock_rate_offs = tz.get_local_time()
 
-	if clock_rate_offs then
-		print(string.format("Clock rate offset: %f", clock_rate_offs))
-	else
-		print("Clock rate offset not set")
+	if not tz.setzone(conf.time.timezone) then
+		print(string.format("Can'time_cal find %s timezone file. Halting.", conf.time.timezone))
+		do
+			return
+		end
 	end
 
-	if bootreason == 0 or local_time == 0 or clock_rate_offs == nil or clock_rate_offs == 0 then
-		print("Clock needs to be set.")
-		webapi.do_api_call(false, true)
-	else
-	
-		local t = rtctime.epoch2cal(local_time)
-		print(
-			string.format(
-				"Current time: %04d/%02d/%02d %02d:%02d:%02d",
-				t["year"],
-				t["mon"],
-				t["day"],
-				t["hour"],
-				t["min"],
-				t["sec"]
-			)
+	local _, bootreason = node.bootreason()
+	print("GasCounter node started! Boot reason: " .. tostring(bootreason))
+
+	local time = tz.get_local_time()
+	local time_cal = rtctime.epoch2cal(time)
+	print(
+		string.format(
+			"Local time is %04d/%02d/%02d %02d:%02d:%02d (%s)",
+			time_cal["year"],
+			time_cal["mon"],
+			time_cal["day"],
+			time_cal["hour"],
+			time_cal["min"],
+			time_cal["sec"],
+			conf.time.timezone
 		)
+	)
 
-		local second_of_day = t["hour"] * 3600 + t["min"] * 60 + t["sec"]
+	local clock_calibration_status = 0
+	if time > 0 then
+		clock_calibration_status = memtools.rtcmem_get_clock_calibration_status()
+	end
 
-		-- Fetch data from AVR
+	if clock_calibration_status == nil or clock_calibration_status < 3 then
+		if clock_calibration_status == nil then
+			clock_calibration_status = 0
+		end
+		print(string.format("Clock calibration status: %d.", clock_calibration_status))
+		clock_calibration_status = clock_calibration_status + 1
+		memtools.rtcmem_set_clock_calibration_status(clock_calibration_status)
+		webapi.do_api_call(true, clock_calibration_status < 3) -- Never returns
+	else
+		local second_of_day = time_cal["hour"] * 3600 + time_cal["min"] * 60 + time_cal["sec"]
+
+		-- Fetch data from AVR if necessary
 		for k, v in pairs(conf.time.poll_avr_at) do
 			if second_of_day < v then
 				memtools.rtcmem_write_log_slot(k - 1, memtools.tiny_read_log())
@@ -49,7 +57,7 @@ function M.main()
 			end
 		end
 
-		-- Do API call
+		-- Do API call if necessary
 		if second_of_day > conf.time.transmit_at then
 			webapi.do_api_call(true, false)
 		else

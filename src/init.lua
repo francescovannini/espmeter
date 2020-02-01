@@ -58,13 +58,16 @@ tmr.create():alarm(
 	2000,
 	tmr.ALARM_SINGLE,
 	function()
-		
 		--local memtools = require("memtools")
-		--memtools.rtcmem_clear_rtctime_data()	
+		--memtools.rtcmem_dump()
+		--memtools.rtcmem_erase()
+		--memtools.rtcmem_dump()
 		--do return end
 
 		local gascounter = require("gascounter")
 		gascounter.main()
+
+		-- local timetest = require("timetest")
+		-- timetest.main()
 	end
 )
-
