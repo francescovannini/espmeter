@@ -38,14 +38,14 @@ function M.main()
 		clock_calibration_status = memtools.rtcmem_get_clock_calibration_status()
 	end
 
-	if clock_calibration_status == nil or clock_calibration_status < 3 then
+	if clock_calibration_status == nil or clock_calibration_status < conf.time.calibration_cycles then
 		if clock_calibration_status == nil then
 			clock_calibration_status = 0
 		end
 		print(string.format("Clock calibration status: %d.", clock_calibration_status))
 		clock_calibration_status = clock_calibration_status + 1
 		memtools.rtcmem_set_clock_calibration_status(clock_calibration_status)
-		webapi.do_api_call(true, clock_calibration_status < 3) -- Never returns
+		webapi.do_api_call(true, clock_calibration_status < conf.time.calibration_cycles) -- Never returns
 	else
 		local second_of_day = time_cal["hour"] * 3600 + time_cal["min"] * 60 + time_cal["sec"]
 

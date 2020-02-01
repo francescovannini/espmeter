@@ -28,6 +28,7 @@ else
     conf.time.timezone = "brussels.zone"
     conf.time.sleep_time = 3600
     conf.time.calibration_sleep_time = 300
+    conf.time.calibration_cycles = 6
     conf.time.transmit_at = conf.time.sleep_time * 24
     conf.time.poll_avr_at = {
         0,
