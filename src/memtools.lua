@@ -47,11 +47,10 @@ function M.rtcmem_set_clock_calibration_status(cycle)
 end
 
 function M.rtcmem_write_log_slot(slot, data32)
-	local t
+	local t = rtc_mem_log_address + (slot * 10)
+	print(string.format("Writing 10 * 4 bytes integers starting at RTC location %d", t))
 	for i = 1, 10 do
-		t = rtc_mem_log_address + (slot * 10) + (i - 1)
-		--print("Writing " .. data32[i] .. " at RTC memory location " .. t)
-		rtcmem.write32(t, data32[i])
+		rtcmem.write32(t + (i - 1), data32[i])
 	end
 end
 
@@ -185,6 +184,8 @@ function M.tiny_read_log()
 	local rec = i2c.read(id, 40)
 	local byte = 0
 	local temp = 0
+
+	print(string.format("Dumped %d bytes from TINY", #rec))
 
 	-- Encodes the 40 bytes into 10 32-bit integers
 	for i = 1, #rec do

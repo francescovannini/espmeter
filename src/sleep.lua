@@ -14,6 +14,10 @@ function M.sleep_async(s, wifi_wakeup_on)
 		wifi_wakeup_on = false
 	end
 
+	if s > 3600 then
+		s = 3600
+	end
+
 	local wakeup_cal = rtctime.epoch2cal(tz.get_local_time() + s)
 	print(
 		string.format(

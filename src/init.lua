@@ -11,8 +11,6 @@
 
 	The whole system is powered by 3 AAA batteries which should last a year.
 
-
-
 	On Tin13 side:
 
 	The whole structure is 40 bytes, comprising:
