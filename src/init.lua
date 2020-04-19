@@ -62,10 +62,27 @@ tmr.create():alarm(
 		--memtools.rtcmem_dump()
 		--do return end
 
+		-- local sleep = require("sleep")
+		-- local t = 0
+		-- local tx = tmr.create()
+		-- tx:alarm(
+		-- 	1,
+		-- 	tmr.ALARM_SEMI,
+		-- 	function()
+		-- 		local aa, bb, cc, dd  = sleep.get_poll_info(t)
+		-- 		if aa then
+		-- 			print(string.format("Time %s: slot_idx:%s send:%s wifi_next:%s next_wake_time:%s",
+		-- 			tostring(t), tostring(aa), tostring(bb), tostring(cc), tostring(dd)))
+		-- 		end
+
+		-- 		t = t + 1
+		-- 		if t < 86400 then
+		-- 			tx:start()
+		-- 		end
+		-- 	end
+		-- )
+
 		local gascounter = require("gascounter")
 		gascounter.main()
-
-		-- local timetest = require("timetest")
-		-- timetest.main()
 	end
 )

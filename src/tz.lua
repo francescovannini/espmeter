@@ -12,10 +12,6 @@ local struct = require("struct")
 
 function M.setzone(zone)
   thezone = zone
-  return M.exists(thezone)
-end
-
-function M.exists(zone)
   return file.exists(zone)
 end
 
@@ -92,6 +88,32 @@ function M.get_local_time()
     end
   end
   return toffset + sec, usec, rate
+end
+
+function M.get_second_of_day(time)
+  if time == nil then
+    time = M.get_local_time()
+  end
+
+  local t = rtctime.epoch2cal(time)
+  return t["hour"] * 3600 + t["min"] * 60 + t["sec"]
+end
+
+function M.time_to_string(time)
+  if time == nil then
+    time = M.get_local_time()
+  end
+
+  local t = rtctime.epoch2cal(time)
+  return string.format(
+    "%04d/%02d/%02d %02d:%02d:%02d",
+    t["year"],
+    t["mon"],
+    t["day"],
+    t["hour"],
+    t["min"],
+    t["sec"]
+  )
 end
 
 return M

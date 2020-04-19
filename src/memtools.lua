@@ -47,7 +47,7 @@ function M.rtcmem_set_clock_calibration_status(cycle)
 end
 
 function M.rtcmem_write_log_slot(slot, data32)
-	local t = rtc_mem_log_address + (slot * 10)
+	local t = rtc_mem_log_address + (slot - 1 * 10)
 	print(string.format("Writing 10 * 4 bytes integers starting at RTC location %d", t))
 	for i = 1, 10 do
 		rtcmem.write32(t + (i - 1), data32[i])

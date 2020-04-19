@@ -11,7 +11,7 @@ local sleep = require("sleep")
 local wifi = require("wifi")
 local sntp = require("sntp")
 
-local function do_post(clock_sync_only, wifi_wakeup_on)
+local function do_post(clock_sync_only)
 	local content = nil
 
 	if not clock_sync_only then
@@ -38,16 +38,10 @@ local function do_post(clock_sync_only, wifi_wakeup_on)
 						local old_rtc = rtctime.get()
 						rtctime.set(sec, usec)
 						local new_rtc = rtctime.get()
-						local tm = rtctime.epoch2cal(tz.get_offset(new_rtc) + new_rtc)
+						local tm = tz.get_offset(new_rtc) + new_rtc
 						print(
 							string.format(
-								"Local time is now: %04d/%02d/%02d %02d:%02d:%02d (drift: %d)",
-								tm["year"],
-								tm["mon"],
-								tm["day"],
-								tm["hour"],
-								tm["min"],
-								tm["sec"],
+								"Local time is now: %s (drift: %d)",tz.time_to_string(tm),
 								old_rtc - new_rtc
 							)
 						)
@@ -58,15 +52,15 @@ local function do_post(clock_sync_only, wifi_wakeup_on)
 			end
 
 			if clock_sync_only then
-				sleep.sleep_async(conf.time.calibration_sleep_time, wifi_wakeup_on) -- Never returns
+				sleep.sleep_async(conf.time.calibration_sleep_time, true)
 			else
-				sleep.until_next_poll(wifi_wakeup_on)
+				sleep.oclock()
 			end
 		end
 	)
 end
 
-function M.do_api_call(clock_sync_only, wifi_wakeup_on)
+function M.do_api_call(clock_sync_only)
 	print("Setting up Wi-Fi connection...")
 
 	if conf.net.dns_primary_server then
@@ -83,7 +77,7 @@ function M.do_api_call(clock_sync_only, wifi_wakeup_on)
 		tmr.ALARM_SINGLE,
 		function()
 			print("Wi-Fi connection can't be established. Giving up.")
-			sleep.until_next_poll(wifi_wakeup_on)
+			sleep.oclock()
 		end
 	)
 
@@ -102,41 +96,32 @@ function M.do_api_call(clock_sync_only, wifi_wakeup_on)
 					function(_, _, server, _)
 						print(string.format("SNTP server: %s", server))
 						local new_rtc = rtctime.get()
-						local tm = rtctime.epoch2cal(tz.get_offset(new_rtc) + new_rtc)
+						local tm = tz.get_offset(new_rtc) + new_rtc
 						print(
 							string.format(
-								"Local time is now: %04d/%02d/%02d %02d:%02d:%02d (drift: %d)",
-								tm["year"],
-								tm["mon"],
-								tm["day"],
-								tm["hour"],
-								tm["min"],
-								tm["sec"],
+								"Local time is now: %s (drift: %d)",tz.time_to_string(tm),
 								old_rtc - new_rtc
 							)
 						)
 
 						if clock_sync_only then
 							print("No need to POST, clock synced through SNTP.")
-							sleep.sleep_async(conf.time.calibration_sleep_time, wifi_wakeup_on) -- Never returns
+							sleep.sleep_async(conf.time.calibration_sleep_time, true)
 						else
-							do_post(false, wifi_wakeup_on) -- Never returns
+							do_post(false)
 						end
 					end,
 					function(reason, _)
 						print("SNTP sync failed: " .. tostring(reason) .. ". Giving up.")
-						sleep.until_next_poll(true) -- Never returns
+						sleep.oclock()
 					end
 				)
 			else
-				do_post(clock_sync_only, wifi_wakeup_on) -- Never returns
+				do_post(clock_sync_only)
 			end
 		end
 	)
 
-	do
-		return
-	end
 end
 
 return M
