@@ -7,7 +7,7 @@ tz.setzone(conf.time.timezone)
 local M = {}
 M.hour = 3600
 
-function M.sleep_async(s, wifi_wakeup_on)
+function M.seconds(s, wifi_wakeup_on)
 	if s > M.hour then
 		s = M.hour
 	end
@@ -46,7 +46,7 @@ function M.oclock()
 	local time = tz.get_local_time()
 	local cal = rtctime.epoch2cal(time)
 	local s = 3600 - (cal["min"] * 60 + cal["sec"])
-	M.sleep_async(s, cal["hour"] == 23)
+	M.seconds(s, cal["hour"] == 23)
 end
 
 return M

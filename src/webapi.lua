@@ -1,24 +1,20 @@
 local M = {}
 local rtctime = require("rtctime")
-local memtools = require("memtools")
 local http = require("http")
 local conf = require("conf")
 local sjson = require("sjson")
 local tz = require("tz")
 local net = require("net")
 local tmr = require("tmr")
-local sleep = require("sleep")
 local wifi = require("wifi")
-local sntp = require("sntp")
+local sntp
 
-local function do_post(clock_sync_only)
-	local content = nil
-
-	if not clock_sync_only then
-		content = memtools.rtcmem_read_log_json()
-		print("POST payload: " .. content)
+local function do_post(content, callback)
+	if content then
+		print(string.format("Posting content: %s", content))
 	end
 
+	-- TODO: Tune timeout, too long now
 	http.post(
 		conf.net.api_endpoint,
 		"Content-Type: application/json\r\n",
@@ -27,8 +23,6 @@ local function do_post(clock_sync_only)
 			if not response then
 				response = ""
 			end
-
-			print(string.format("HTTP [%d] - %s", code, response))
 
 			if code == 200 then
 				local kv = sjson.decode(response)
@@ -39,28 +33,19 @@ local function do_post(clock_sync_only)
 						rtctime.set(sec, usec)
 						local new_rtc = rtctime.get()
 						local tm = tz.get_offset(new_rtc) + new_rtc
-						print(
-							string.format(
-								"Local time is now: %s (drift: %d)",tz.time_to_string(tm),
-								old_rtc - new_rtc
-							)
-						)
+						print(string.format("Local time is now: %s (drift: %d)", tz.time_to_string(tm), old_rtc - new_rtc))
 					end
 				end
+				callback(true)
 			else
 				print("Error during POST.")
-			end
-
-			if clock_sync_only then
-				sleep.sleep_async(conf.time.calibration_sleep_time, true)
-			else
-				sleep.oclock()
+				callback(false)
 			end
 		end
 	)
 end
 
-function M.do_api_call(clock_sync_only)
+function M.server_sync(content, callback)
 	print("Setting up Wi-Fi connection...")
 
 	if conf.net.dns_primary_server then
@@ -77,7 +62,7 @@ function M.do_api_call(clock_sync_only)
 		tmr.ALARM_SINGLE,
 		function()
 			print("Wi-Fi connection can't be established. Giving up.")
-			sleep.oclock()
+			callback(false)
 		end
 	)
 
@@ -89,6 +74,7 @@ function M.do_api_call(clock_sync_only)
 			print("Wi-Fi connected.")
 			wifi_timeout_timer:stop()
 			if conf.net.ntp.enabled then
+				sntp = require("sntp")
 				print("Attempting SNTP time sync.")
 				local old_rtc = rtctime.get()
 				sntp.sync(
@@ -97,31 +83,25 @@ function M.do_api_call(clock_sync_only)
 						print(string.format("SNTP server: %s", server))
 						local new_rtc = rtctime.get()
 						local tm = tz.get_offset(new_rtc) + new_rtc
-						print(
-							string.format(
-								"Local time is now: %s (drift: %d)",tz.time_to_string(tm),
-								old_rtc - new_rtc
-							)
-						)
+						print(string.format("Local time is now: %s (drift: %d)", tz.time_to_string(tm), old_rtc - new_rtc))
 
-						if clock_sync_only then
+						if not content then
 							print("No need to POST, clock synced through SNTP.")
-							sleep.sleep_async(conf.time.calibration_sleep_time, true)
+							callback(true)
 						else
-							do_post(false)
+							do_post(content, callback)
 						end
 					end,
 					function(reason, _)
 						print("SNTP sync failed: " .. tostring(reason) .. ". Giving up.")
-						sleep.oclock()
+						callback(false)
 					end
 				)
 			else
-				do_post(clock_sync_only)
+				do_post(content, callback)
 			end
 		end
 	)
-
 end
 
 return M

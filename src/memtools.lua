@@ -1,40 +1,49 @@
 local rtc_mem_log_address = 11
-local rtc_mem_rtc_time_cal_address = 10
+local rtc_mem_clock_cal_address = 10
 local rtcmem = require("rtcmem")
+local bit = require("bit")
+local tmr = require("tmr")
+local rtctime = require("rtctime")
 
 local M = {}
 
--- function M.dump(o)
--- 	if type(o) == "table" then
--- 		local s = "{"
--- 		for k, v in pairs(o) do
--- 			if type(k) ~= "number" then
--- 				k = '"' .. k .. '"'
--- 			end
--- 			s = s .. "[" .. k .. "] = " .. dump(v) .. ", "
--- 		end
--- 		return s .. "}"
--- 	else
--- 		return '"' .. tostring(o) .. '"'
--- 	end
--- end
+function M.dump(o)
+	if type(o) == "table" then
+		local s = "{"
+		for k, v in pairs(o) do
+			if type(k) ~= "number" then
+				k = '"' .. k .. '"'
+			end
+			s = s .. "[" .. k .. "] = " .. M.dump(v) .. ", "
+		end
+		return s .. "}"
+	else
+		return '"' .. tostring(o) .. '"'
+	end
+end
 
-local function int32_to_8(value)
-	local a = value % 256
-	local b = math.floor(value / 256 + 0.5) % 256
-	local c = math.floor(value / 65536 + 0.5) % 256
-	local d = math.floor(value / 16777216 + 0.5) % 256
+function M.int32_to_8(value)
+	local a = bit.band(value, 255)
+
+	value = bit.rshift(value, 8)
+	local b = bit.band(value, 255)
+
+	value = bit.rshift(value, 8)
+	local c = bit.band(value, 255)
+
+	value = bit.rshift(value, 8)
+	local d = bit.band(value, 255)
+
 	return a, b, c, d
 end
 
-local function int8_to_32(a, b, c, d)
-	local v = a + b * 256 + c * 65536 + d * 16777216
-	return v
+function M.int8_to_32(a, b, c, d)
+	return bit.lshift(d, 24) + bit.lshift(c, 16) + bit.lshift(b, 8) + a
 end
 
 function M.rtcmem_get_clock_calibration_status()
 	local status, status_a, status_b, status_c
-	status, status_a, status_b, status_c = int32_to_8(rtcmem.read32(rtc_mem_rtc_time_cal_address))
+	status, status_a, status_b, status_c = M.int32_to_8(rtcmem.read32(rtc_mem_clock_cal_address))
 	if (status == status_a - 1) and (status == status_b - 2) and (status == status_c - 3) then
 		return status
 	else
@@ -43,26 +52,37 @@ function M.rtcmem_get_clock_calibration_status()
 end
 
 function M.rtcmem_set_clock_calibration_status(cycle)
-	rtcmem.write32(rtc_mem_rtc_time_cal_address, int8_to_32(cycle, cycle + 1, cycle + 2, cycle + 3))
+	rtcmem.write32(rtc_mem_clock_cal_address, M.int8_to_32(cycle, cycle + 1, cycle + 2, cycle + 3))
 end
 
+-- First slot is 0
 function M.rtcmem_write_log_slot(slot, data32)
-	local t = rtc_mem_log_address + (slot - 1 * 10)
-	print(string.format("Writing 10 * 4 bytes integers starting at RTC location %d", t))
-	for i = 1, 10 do
-		rtcmem.write32(t + (i - 1), data32[i])
+	local t = rtc_mem_log_address + (slot * 10)
+	--print(string.format("Writing 10 * 4 bytes integers starting at RTC location %d", t))
+	for i = 0, 9 do
+		rtcmem.write32(t + i, data32[i + 1])
 	end
 end
 
+-- First slot is 0
+function M.rtcmem_read_log_slot(slot)
+	local t = rtc_mem_log_address + (slot * 10)
+	local data32 = {}
+	for i = 0, 9 do
+		data32[i + 1] = rtcmem.read32(t + i)
+	end
+	return data32
+end
+
 function M.rtcmem_clear_log()
-	print("Clearing RTC log.")
+	--print("Clearing RTC log.")
 	for i = 0, 79 do
 		rtcmem.write32(rtc_mem_log_address + i, i)
 	end
 end
 
 function M.rtcmem_erase()
-	print("Clearing RTCTime data...")
+	--print("Clearing RTC mem data...")
 	for i = 0, 127 do
 		rtcmem.write32(i, 0)
 	end
@@ -71,7 +91,7 @@ end
 function M.rtcmem_dump()
 	print("Content of RTC memory:")
 	for i = 0, 127 do
-		local a, b, c, d = int32_to_8(rtcmem.read32(i))
+		local a, b, c, d = M.int32_to_8(rtcmem.read32(i))
 		print(string.format("[%03d] %02x %02x %02x %02x", i, a, b, c, d))
 	end
 end
@@ -87,11 +107,14 @@ function M.rtcmem_read_log_json()
 	local j, a, b, c, d
 	local cycles = {}
 	local cycle_buf = {}
-	local log = "{"
+	local log = string.format("{\"t\": %d, \"d\": {", rtctime.get())
 
 	j = 0
 	for i = 0, 79 do
-		a, b, c, d = int32_to_8(rtcmem.read32(rtc_mem_log_address + i))
+
+		tmr.wdclr()
+
+		a, b, c, d = M.int32_to_8(rtcmem.read32(rtc_mem_log_address + i))
 		table.insert(cycle_buf, a)
 		table.insert(cycle_buf, b)
 		table.insert(cycle_buf, c)
@@ -154,7 +177,7 @@ function M.rtcmem_read_log_json()
 		end
 	end
 
-	log = log .. "}"
+	log = log .. "}}"
 
 	return log
 end
@@ -184,14 +207,13 @@ function M.tiny_read_log()
 	local rec = i2c.read(id, 40)
 	local byte = 0
 	local temp = 0
-
-	print(string.format("Dumped %d bytes from TINY", #rec))
+	local str = string.format("Dumped %d bytes from TINY: ", #rec)
 
 	-- Encodes the 40 bytes into 10 32-bit integers
 	for i = 1, #rec do
 		local b = string.byte(rec:sub(i, i))
 
-		--[print("I2C byte " .. (i - 1) .. ":" .. b)]]--
+		str = str .. " " .. string.byte(rec:sub(i, i))
 
 		temp = temp + b * 2 ^ (8 * byte)
 		byte = byte + 1
@@ -202,6 +224,8 @@ function M.tiny_read_log()
 			byte = 0
 		end
 	end
+
+	print(str)
 
 	return data32
 end

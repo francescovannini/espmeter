@@ -32,55 +32,72 @@
 
 	On ESP8266 side:
 
-	Sleep cycle 0 begins at midnight. End of cycle 7 ends approximately
-	around midnight. Each cycle lasts 3 hours; at the end of each cycle, data
-	from the Tiny13 is dumped into ESP RTC memory and the Tiny13 clears its
-    own memory.
+	ESP8266 could theoretically stay alseep for 3 consecutive hours, however
+	due to the internal ESP sleep counter implementation, it's impossible to
+	sleep longer than about 71 minutes (4294967295us). The ESP therefore
+	sleeps 1 hour, and when it wakes up, depending on the hour, either:
 
-    ESP8266 RTC memory is configured as a 32-bit integer array.
-    The 40 bytes struct dumped from the Tiny13 is converted into a 10 elements
-    array of 32-bits integers by bit shifting left.
+	3, 6, 9, 12, 15, 18, 21: retrieves data from Tiny13 and stores it in RTC
+	0/24: retrieves data from Tiny13, sends the whole RTC memory dump to server
+		  and performs clock syncronization using the response from server
+	rest: goes back to sleep immediately for another hour
 
-    At the end of cycle 7, all RTC memory is transferred to server
-	and the sleep cycle is synchronized using server time, received in the
-	API response.
+	When the ESP dumps the Tiny memory, the Tiny13 clears its own memory.
 
-	Sleep cycle information is stored in RTC memory slot 0.
-	Data dumped from Tiny13 is stored from slots 1-80 totalling 320 bytes
-	per day.
+	ESP8266 RTC memory is configured as a 32-bit integer array. The 40 bytes
+	struct dumped from the Tiny13 is converted into a 10 elements array of
+	32-bits integers by bit shifting left and stored into the RTC.
+
+	RTC Memory Allocation (unit: 32bit array)
+	[00-09]: Used by rtctime library to compensate poor "RTC" timekeeping of ESP
+	[10-10]: Clock calibration counter (+ checksum)
+	[11-91]: 8 slots, 10 elements each, every element 4 bytes; every slot
+			 corresponds to a Tiny13 memory dump (40 bytes). Checksum is 
+			 performed on the Tiny13 and checked on the ESP before sending
+			 the slot content to the server
 
 ]] --
+
+local function compile_lua()
+	local file = require("file")
+	local node = require("node")
+	local l = file.list("%.lua$")
+	for k, _ in pairs(l) do
+		if k ~= "init.lua" then
+			print("Compiling " .. k)
+			node.compile(k)
+			print("Removing " .. k)
+			file.remove(k)
+		end
+	end
+	node = nil
+	file = nil
+end
 
 local tmr = require("tmr")
 tmr.create():alarm(
 	2000,
 	tmr.ALARM_SINGLE,
 	function()
-		--local memtools = require("memtools")
-		--memtools.rtcmem_dump()
-		--memtools.rtcmem_erase()
-		--memtools.rtcmem_dump()
-		--do return end
+		-- local l = file.list("%.lc$")
+		-- for k, _ in pairs(l) do
+		-- 	print("Removing " .. k)
+		-- 	file.remove(k)
+		-- end
 
-		-- local sleep = require("sleep")
-		-- local t = 0
-		-- local tx = tmr.create()
-		-- tx:alarm(
-		-- 	1,
-		-- 	tmr.ALARM_SEMI,
-		-- 	function()
-		-- 		local aa, bb, cc, dd  = sleep.get_poll_info(t)
-		-- 		if aa then
-		-- 			print(string.format("Time %s: slot_idx:%s send:%s wifi_next:%s next_wake_time:%s",
-		-- 			tostring(t), tostring(aa), tostring(bb), tostring(cc), tostring(dd)))
-		-- 		end
+		compile_lua()
 
-		-- 		t = t + 1
-		-- 		if t < 86400 then
-		-- 			tx:start()
-		-- 		end
-		-- 	end
-		-- )
+		--local tests = require("tests")
+		--tests.timekeeping()
+		--tmr.wdclr()
+		--tests.bitshift()
+		--tmr.wdclr()
+		--tests.rtcmem()
+		--tmr.wdclr()
+		-- print(node.heap())
+		--tests.post()
+		-- tests.tinypoll()
+		--tests = nil
 
 		local gascounter = require("gascounter")
 		gascounter.main()

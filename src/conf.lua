@@ -5,8 +5,6 @@ if not _G[moduleName] == nil then
 else
 	local conf = {}
 
-	local hour = 3600
-
 	conf.wifi = {}
 	conf.wifi.auto = false
 	conf.wifi.save = false
@@ -27,10 +25,12 @@ else
 
 	conf.time = {}
 	conf.time.timezone = "brussels.zone"
-	conf.time.calibration_sleep_time = 10
+	conf.time.calibration_sleep_time = 600
+	--conf.time.calibration_sleep_time = 10
 	conf.time.calibration_cycles = 3
 	conf.time.drift_margin = 300
 
 	_G[moduleName] = conf
 	return conf
 end
+
