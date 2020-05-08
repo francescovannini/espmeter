@@ -3,6 +3,7 @@ local rtc_mem_clock_cal_address = 10
 local rtcmem = require("rtcmem")
 local bit = require("bit")
 local tmr = require("tmr")
+local conf = require("conf")
 local rtctime = require("rtctime")
 
 local M = {}
@@ -104,21 +105,22 @@ typedef struct pulse_log_t {
 } pulse_log_t;
 ]]
 function M.rtcmem_read_log_json()
-	local j, a, b, c, d
 	local cycles = {}
+
+	local log = string.format('{"vrs":"%s","ts":%d,"dt":{', conf.ota.version, rtctime.get())
 	local cycle_buf = {}
-	local log = string.format("{\"t\": %d, \"d\": {", rtctime.get())
 
-	j = 0
+	local j = 0
 	for i = 0, 79 do
-
-		tmr.wdclr()
+		local a, b, c, d
 
 		a, b, c, d = M.int32_to_8(rtcmem.read32(rtc_mem_log_address + i))
 		table.insert(cycle_buf, a)
 		table.insert(cycle_buf, b)
 		table.insert(cycle_buf, c)
 		table.insert(cycle_buf, d)
+
+		tmr.wdclr()
 
 		j = j + 4
 		if j == 40 then
@@ -154,7 +156,7 @@ function M.rtcmem_read_log_json()
 			end
 
 			if byte_idx == 4 then
-				logbuf = logbuf .. ',"f": [' .. tostring(byte)
+				logbuf = logbuf .. ',"f":[' .. tostring(byte)
 			end
 
 			if byte_idx > 4 and byte_idx < 39 then
@@ -170,7 +172,7 @@ function M.rtcmem_read_log_json()
 					if valid_cycles > 0 then
 						log = log .. ","
 					end
-					log = log .. '"' .. tostring(cycle_idx - 1) .. '": ' .. logbuf
+					log = log .. '"' .. tostring(cycle_idx - 1) .. '":' .. logbuf
 					valid_cycles = valid_cycles + 1
 				end
 			end

@@ -110,10 +110,11 @@ function M.rtcmem()
         local data32 = {}
         local checksum = 64
         for j = 1, 9 do -- ...each has 10 32-bit integers...
+            y = 128
             data32[j] = memtools.int8_to_32(y, y + 1, y + 2, y + 3)
             sum = sum + y + (y + 1) + (y + 2) + (y + 3)
             checksum = checksum + y + (y + 1) + (y + 2) + (y + 3)
-            y = (y + 4) % 256
+            --y = (y + 4) % 256
         end
 
         -- Last byte of slot contains the checksum
@@ -154,7 +155,7 @@ function M.post()
     local webapi = require("webapi")
     webapi.server_sync(
         content,
-        function(result)
+        function(result, ota_update)
             if result then
                 print("Post succesful")
             else
@@ -179,15 +180,52 @@ function M.tinypoll()
         function()
             if c == 60 then
                 print(string.format("Iteration ", j))
-                memtools.tiny_read_log()
-                j = j + 1
-                c = 1
+                memtools.rtcmem_write_log_slot(0, memtools.tiny_read_log())
+                local content = memtools.rtcmem_read_log_json()
+                local webapi = require("webapi")
+                webapi.server_sync(
+                    content,
+                    function(result, ota_update)
+                        if result then
+                            print("Post succesful")
+                        else
+                            print("Post failed")
+                        end
+                        j = j + 1
+                        c = 1
+                        t:start()
+                    end
+                )
             else
                 print("Time: " .. c)
                 c = c + 1
+                t:start()
             end
+        end
+    )
+end
 
-            t:start()
+function M.ota_update()
+    print("Testing OTA")
+
+    local webapi = require("webapi")
+    webapi.server_sync(
+        nil,
+        function(result, ota_content)
+            if result and ota_content ~= nil then
+                webapi.ota_update(
+                    ota_content,
+                    function(ota_result)
+                        if ota_result then
+                            print("OTA update OK!")
+                        else
+                            print("OTA failed")
+                        end
+                    end
+                )
+            else
+                print("Post failed or no OTA update available")
+            end
         end
     )
 end

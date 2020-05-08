@@ -5,6 +5,10 @@ if not _G[moduleName] == nil then
 else
 	local conf = {}
 
+	conf.ota = {}
+	conf.ota.version = 1
+	conf.ota.enabled = true
+	
 	conf.wifi = {}
 	conf.wifi.auto = false
 	conf.wifi.save = false

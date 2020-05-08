@@ -14,8 +14,8 @@ if [ "$1" == "-i" ]; then
 	echo "Uploading $list"
 	nodemcu-uploader --baud 921600 --timeout 60 upload $list
 else
-	nodemcu-uploader --baud 921600 --timeout 60 upload *.lua
-	echo "Uploading all lua files"
+	nodemcu-uploader --baud 921600 --timeout 60 upload *
+	echo "Uploading all files in src/"
 fi
 cd ..
 date "+%F %T" > "upload.lst"
