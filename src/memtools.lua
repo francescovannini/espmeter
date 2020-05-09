@@ -1,29 +1,15 @@
-local rtc_mem_log_address = 11
-local rtc_mem_clock_cal_address = 10
 local rtcmem = require("rtcmem")
-local bit = require("bit")
 local tmr = require("tmr")
 local conf = require("conf")
 local rtctime = require("rtctime")
 
+local rtc_mem_log_address = 11
+local rtc_mem_clock_cal_address = 10
+
 local M = {}
 
-function M.dump(o)
-	if type(o) == "table" then
-		local s = "{"
-		for k, v in pairs(o) do
-			if type(k) ~= "number" then
-				k = '"' .. k .. '"'
-			end
-			s = s .. "[" .. k .. "] = " .. M.dump(v) .. ", "
-		end
-		return s .. "}"
-	else
-		return '"' .. tostring(o) .. '"'
-	end
-end
-
 function M.int32_to_8(value)
+	local bit = require("bit")
 	local a = bit.band(value, 255)
 
 	value = bit.rshift(value, 8)
@@ -39,6 +25,7 @@ function M.int32_to_8(value)
 end
 
 function M.int8_to_32(a, b, c, d)
+	local bit = require("bit")
 	return bit.lshift(d, 24) + bit.lshift(c, 16) + bit.lshift(b, 8) + a
 end
 
@@ -59,7 +46,6 @@ end
 -- First slot is 0
 function M.rtcmem_write_log_slot(slot, data32)
 	local t = rtc_mem_log_address + (slot * 10)
-	--print(string.format("Writing 10 * 4 bytes integers starting at RTC location %d", t))
 	for i = 0, 9 do
 		rtcmem.write32(t + i, data32[i + 1])
 	end
@@ -89,13 +75,13 @@ function M.rtcmem_erase()
 	end
 end
 
-function M.rtcmem_dump()
-	print("Content of RTC memory:")
-	for i = 0, 127 do
-		local a, b, c, d = M.int32_to_8(rtcmem.read32(i))
-		print(string.format("[%03d] %02x %02x %02x %02x", i, a, b, c, d))
-	end
-end
+-- function M.rtcmem_dump()
+-- 	print("Content of RTC memory:")
+-- 	for i = 0, 127 do
+-- 		local a, b, c, d = M.int32_to_8(rtcmem.read32(i))
+-- 		print(string.format("[%03d] %02x %02x %02x %02x", i, a, b, c, d))
+-- 	end
+-- end
 
 --[[
 typedef struct pulse_log_t {
@@ -184,7 +170,7 @@ function M.rtcmem_read_log_json()
 	return log
 end
 
-function M.tiny_read_log()
+function M.tiny2rtc(slot)
 	-- Pin mapping between ESP and NodeMCU IO
 	--  IO  ESP     IO  ESP
 	--  0   GPIO16  7   GPIO13
@@ -209,14 +195,10 @@ function M.tiny_read_log()
 	local rec = i2c.read(id, 40)
 	local byte = 0
 	local temp = 0
-	local str = string.format("Dumped %d bytes from TINY: ", #rec)
 
 	-- Encodes the 40 bytes into 10 32-bit integers
 	for i = 1, #rec do
 		local b = string.byte(rec:sub(i, i))
-
-		str = str .. " " .. string.byte(rec:sub(i, i))
-
 		temp = temp + b * 2 ^ (8 * byte)
 		byte = byte + 1
 
@@ -227,9 +209,16 @@ function M.tiny_read_log()
 		end
 	end
 
-	print(str)
+	if slot ~= nil then
+		local t = rtc_mem_log_address + (slot * 10)
+		for i = 0, 9 do
+			rtcmem.write32(t + i, data32[i + 1])
+		end
+	end
+end
 
-	return data32
+function M._unload()
+	package.loaded["memtools"] = nil
 end
 
 return M

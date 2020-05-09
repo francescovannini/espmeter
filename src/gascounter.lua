@@ -1,6 +1,4 @@
-local M = {}
-
-function M.main()
+return function()
 	local node = require("node")
 	local memtools = require("memtools")
 	local conf = require("conf")
@@ -80,7 +78,7 @@ function M.main()
 	else
 		if clock_calibration_status == conf.time.calibration_cycles then
 			print("Syncing cycle with TINY after clock calibration")
-			memtools.tiny_read_log()
+			memtools.tiny2rtc()
 			clock_calibration_status = clock_calibration_status + 1
 			memtools.rtcmem_set_clock_calibration_status(clock_calibration_status)
 		else
@@ -90,7 +88,7 @@ function M.main()
 
 	-- around midnight data is collected and sent and clock is synchronized
 	if second_of_day > ((24 * 3600) - conf.time.drift_margin) or second_of_day < conf.time.drift_margin then
-		memtools.rtcmem_write_log_slot(7, memtools.tiny_read_log())
+		memtools.tiny2rtc(7)
 
 		local content = memtools.rtcmem_read_log_json()
 		memtools = nil
@@ -121,7 +119,7 @@ function M.main()
 	for hour = 3, 21, 3 do
 		if math.abs((hour * 3600) - second_of_day) <= conf.time.drift_margin then
 			print(string.format("Collecting data for slot %d", s))
-			memtools.rtcmem_write_log_slot(s, memtools.tiny_read_log())
+			memtools.tiny2rtc(s)
 			break
 		end
 		s = s + 1
@@ -134,4 +132,3 @@ function M.main()
 	end
 end
 
-return M

@@ -1,29 +1,23 @@
--- tz -- A simple timezone module for interpreting zone files
+local module_name = "tz"
 
 local M = {}
-
 local tstart = 0
 local tend = 0
 local toffset = 0
-local thezone = "brussels.zone"
+local zone = "brussels.zone"
 local rtctime = require("rtctime")
 local file = require("file")
-local struct = require("struct")
-
-function M.setzone(zone)
-  thezone = zone
-  return file.exists(zone)
-end
 
 local function load(t)
-  local z = file.open(thezone, "r")
+  local struct = require("struct")
+  local z = file.open(zone, "r")
 
   local hdr = z:read(20)
   local magic = struct.unpack("c4 B", hdr)
 
   if magic == "TZif" then
     local lens = z:read(24)
-    local ttisgmt_count, ttisdstcnt, leapcnt, timecnt, typecnt, charcnt = struct.unpack("> LLLLLL", lens)
+    local _, _, _, timecnt, typecnt, _ = struct.unpack("> LLLLLL", lens)
 
     local times = z:read(4 * timecnt)
     local typeindex = z:read(timecnt)
@@ -51,21 +45,9 @@ local function load(t)
   end
 end
 
-function M.get_offset(t)
-  if t < tstart or t >= tend then
-    -- Ignore errors
-    local ok, msg =
-      pcall(
-      function()
-        load(t)
-      end
-    )
-    if not ok then
-      print(msg)
-    end
-  end
-
-  return toffset, tstart, tend
+function M.setzone(z)
+  zone = z
+  return file.exists(zone)
 end
 
 function M.get_local_time()
@@ -103,17 +85,12 @@ function M.time_to_string(time)
   if time == nil then
     time = M.get_local_time()
   end
-
   local t = rtctime.epoch2cal(time)
-  return string.format(
-    "%04d/%02d/%02d %02d:%02d:%02d",
-    t["year"],
-    t["mon"],
-    t["day"],
-    t["hour"],
-    t["min"],
-    t["sec"]
-  )
+  return string.format("%04d/%02d/%02d %02d:%02d:%02d", t["year"], t["mon"], t["day"], t["hour"], t["min"], t["sec"])
+end
+
+function M._unload()
+	package.loaded["tz"] = nil
 end
 
 return M

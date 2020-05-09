@@ -9,7 +9,7 @@ cd src
 nodemcu-uploader file remove init.lua
 
 if [ "$1" == "-i" ]; then
-	list=$(find *.lua -newermt "$last" -printf "%f ")
+	list=$(find *.lua ! -name "init.lua" -newermt "$last" -printf "%f ")
 	list=$list"init.lua"
 	echo "Uploading $list"
 	nodemcu-uploader --baud 921600 --timeout 60 upload $list

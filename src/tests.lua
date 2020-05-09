@@ -147,19 +147,33 @@ function M.rtcmem()
     print("OK.")
 end
 
-function M.post()
+function M.post_and_ota()
     local memtools = require("memtools")
     local content = memtools.rtcmem_read_log_json()
-    memtools = nil
+    memtools._unload()
 
     local webapi = require("webapi")
     webapi.server_sync(
         content,
-        function(result, ota_update)
+        function(result, ota_content)
             if result then
-                print("Post succesful")
+                print("POST ok.")
+                if ota_content ~= nil then
+                    webapi.ota_update(
+                        ota_content,
+                        function(ota_result)
+                            if ota_result then
+                                print("OTA update OK!")
+                            else
+                                print("OTA failed")
+                            end
+                        end
+                    )
+                else
+                    print("No OTA update available")
+                end
             else
-                print("Post failed")
+                print("POST failed (so no OTA performed)")
             end
         end
     )
@@ -180,7 +194,7 @@ function M.tinypoll()
         function()
             if c == 60 then
                 print(string.format("Iteration ", j))
-                memtools.rtcmem_write_log_slot(0, memtools.tiny_read_log())
+                memtools.tiny2rtc(0)
                 local content = memtools.rtcmem_read_log_json()
                 local webapi = require("webapi")
                 webapi.server_sync(
@@ -200,31 +214,6 @@ function M.tinypoll()
                 print("Time: " .. c)
                 c = c + 1
                 t:start()
-            end
-        end
-    )
-end
-
-function M.ota_update()
-    print("Testing OTA")
-
-    local webapi = require("webapi")
-    webapi.server_sync(
-        nil,
-        function(result, ota_content)
-            if result and ota_content ~= nil then
-                webapi.ota_update(
-                    ota_content,
-                    function(ota_result)
-                        if ota_result then
-                            print("OTA update OK!")
-                        else
-                            print("OTA failed")
-                        end
-                    end
-                )
-            else
-                print("Post failed or no OTA update available")
             end
         end
     )

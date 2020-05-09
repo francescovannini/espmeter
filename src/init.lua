@@ -74,9 +74,6 @@ local function compile_lua()
 	file = nil
 end
 
--- local file = require("file")
--- file.format()
-
 local tmr = require("tmr")
 tmr.create():alarm(
 	2000,
@@ -96,14 +93,13 @@ tmr.create():alarm(
 		--tests.bitshift()
 		--tmr.wdclr()
 		tests.rtcmem()
-		tmr.wdclr()
+		-- tmr.wdclr()
 		-- print(node.heap())
-		tests.post()
+		tests.post_and_ota()
 		--tests.tinypoll()
-		--tests.ota_update()
 		--tests = nil
 
 		-- local gascounter = require("gascounter")
-		-- gascounter.main()
+		-- gascounter()
 	end
 )

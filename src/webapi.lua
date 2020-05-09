@@ -4,10 +4,11 @@ local tz = require("tz")
 local conf = require("conf")
 local wifi = require("wifi")
 local tmr = require("tmr")
+local node = require("node")
+local sjson = require("sjson")
 
 local function do_post(content, callback)
-
- -- send version when content is null
+	-- send version when content is null
 
 	print(string.format("Posting content: %s", content))
 
@@ -19,6 +20,8 @@ local function do_post(content, callback)
 		content,
 		function(code, response, _)
 			http = nil
+
+			print(node.heap())
 
 			local ota_update = nil
 
@@ -34,18 +37,14 @@ local function do_post(content, callback)
 				return
 			end
 
-			local sjson = require("sjson")
 			local kv = sjson.decode(response)
 			sjson = nil
 
 			for k, v in pairs(kv) do
 				if k == "time" then
 					local sec, usec = string.match(v, "([^.]*)%.([^.]*)")
-					local old_rtc = rtctime.get()
 					rtctime.set(sec, usec)
-					local new_rtc = rtctime.get()
-					local tm = tz.get_offset(new_rtc) + new_rtc
-					print(string.format("Local time is now: %s (drift: %d)", tz.time_to_string(tm), old_rtc - new_rtc))
+					print(string.format("Local time is now: %s", tz.time_to_string()))
 				end
 
 				if k == "otaupdate" then
@@ -61,14 +60,16 @@ end
 function M.server_sync(content, callback) -- callback(result, ota_update)
 	print("Setting up Wi-Fi connection...")
 
-	local net = require("net")
+	if conf.net.dns_primary_server or conf.net.dns_secondary_server then
+		local net = require("net")
 
-	if conf.net.dns_primary_server then
-		net.dns.setdnsserver(conf.net.dns_primary_server, 0)
-	end
+		if conf.net.dns_primary_server then
+			net.dns.setdnsserver(conf.net.dns_primary_server, 0)
+		end
 
-	if conf.net.dns_secondary_server then
-		net.dns.setdnsserver(conf.net.dns_secondary_server, 1)
+		if conf.net.dns_secondary_server then
+			net.dns.setdnsserver(conf.net.dns_secondary_server, 1)
+		end
 	end
 
 	local wifi_timeout_timer = tmr.create()
@@ -98,9 +99,7 @@ function M.server_sync(content, callback) -- callback(result, ota_update)
 					function(_, _, server, _)
 						sntp = nil
 						print(string.format("SNTP server: %s", server))
-						local new_rtc = rtctime.get()
-						local tm = tz.get_offset(new_rtc) + new_rtc
-						print(string.format("Local time is now: %s (drift: %d)", tz.time_to_string(tm), old_rtc - new_rtc))
+						print(string.format("Local time is now: %s", tz.time_to_string()))
 
 						if not content then
 							print("No need to POST, clock synced through SNTP.")
@@ -213,6 +212,10 @@ function M.ota_update(ota_content, callback)
 	end
 
 	callback(false)
+end
+
+function M._unload()
+	package.loaded["webapi"] = nil
 end
 
 return M

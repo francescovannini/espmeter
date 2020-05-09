@@ -49,4 +49,8 @@ function M.oclock()
 	M.seconds(s, cal["hour"] == 23)
 end
 
+function M._unload()
+	package.loaded["sleep"] = nil
+end
+
 return M
