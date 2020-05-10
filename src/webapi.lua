@@ -1,11 +1,38 @@
 local M = {}
-local rtctime = require("rtctime")
-local tz = require("tz")
 local conf = require("conf")
 local wifi = require("wifi")
 local tmr = require("tmr")
-local node = require("node")
-local sjson = require("sjson")
+
+-- https://github.com/luvit/luvit/blob/master/deps/url.lua
+local function parseURL(url)
+	local chunk, protocol = url:match("^(([a-z0-9+]+)://)")
+	url = url:sub((chunk and #chunk or 0) + 1)
+
+	local auth
+	chunk, auth = url:match("(([%w%p]+:?[%w%p]+)@)")
+	url = url:sub((chunk and #chunk or 0) + 1)
+
+	local host
+	local hostname
+	local port
+	if protocol then
+		host = url:match("^([%a%.%d-]+:?%d*)")
+		if host then
+			hostname = host:match("^([^:/]+)")
+			port = host:match(":(%d+)$") or 80
+		end
+		url = url:sub((host and #host or 0) + 1)
+	end
+
+	local parsed = {
+		hostname = hostname,
+		port = port,
+		auth = auth,
+		path = url
+	}
+
+	return parsed
+end
 
 local function do_post(content, callback)
 	-- send version when content is null
@@ -21,10 +48,6 @@ local function do_post(content, callback)
 		function(code, response, _)
 			http = nil
 
-			print(node.heap())
-
-			local ota_update = nil
-
 			if code ~= 200 then
 				print(string.format("Server answered %d to POST", code))
 				callback(false, nil)
@@ -37,14 +60,21 @@ local function do_post(content, callback)
 				return
 			end
 
+			local sjson = require("sjson")
 			local kv = sjson.decode(response)
 			sjson = nil
 
+			local ota_update = nil
 			for k, v in pairs(kv) do
-				if k == "time" then
+				if k == "time" and not conf.net.ntp.enabled then
 					local sec, usec = string.match(v, "([^.]*)%.([^.]*)")
+					local rtctime = require("rtctime")
+					local tz = require("tz")
 					rtctime.set(sec, usec)
 					print(string.format("Local time is now: %s", tz.time_to_string()))
+					rtctime = nil
+					tz._unload()
+					tz = nil
 				end
 
 				if k == "otaupdate" then
@@ -91,18 +121,12 @@ function M.server_sync(content, callback) -- callback(result, ota_update)
 			wifi_timeout_timer:stop()
 			if conf.net.ntp.enabled then
 				local sntp = require("sntp")
-				print("Attempting SNTP time sync.")
-				local old_rtc = rtctime.get()
-
 				sntp.sync(
 					conf.net.ntp.server,
 					function(_, _, server, _)
 						sntp = nil
-						print(string.format("SNTP server: %s", server))
-						print(string.format("Local time is now: %s", tz.time_to_string()))
-
+						print(string.format("Time set from SNTP server: %s", server))
 						if not content then
-							print("No need to POST, clock synced through SNTP.")
 							callback(true, nil)
 						else
 							do_post(content, callback)
@@ -120,20 +144,11 @@ function M.server_sync(content, callback) -- callback(result, ota_update)
 	)
 end
 
-local function ota_get_content(ota_content, callback)
-	if wifi.sta.status() ~= wifi.STA_GOTIP then
-		callback(false)
-		return
-	end
+local function ota_get_content(ota_base_url, ota_content, callback)
+	-- Take first entry
+	local name = table.remove(ota_content, 1)
 
-	local name, url
-	for n, u in pairs(ota_content) do
-		if name == nil and n ~= nil and u ~= nil then
-			name = n
-			url = u
-		end
-	end
-
+	-- No more entries left
 	if name == nil then
 		print("Contend downloaded, deploying...")
 		local file = require("file")
@@ -151,39 +166,64 @@ local function ota_get_content(ota_content, callback)
 		return
 	end
 
-	ota_content[name] = nil
+	print(string.format("Downloading %s", name))
 
-	name = name .. ".upd"
-	print(string.format("Downloading %s into %s", url, name))
-	local http = require("http")
-	http.get(
-		url,
-		nil,
-		function(code, body, _)
-			http = nil
+	local net = require("net")
+	local file = require("file")
+	local f = nil
 
-			if code ~= 200 then
-				callback(false)
-				return
+	local tcp = net.createConnection(net.TCP, 0)
+	tcp:on(
+		"receive",
+		function(sck, data)
+			if f == nil then
+				name = name .. ".upd"
+				f = file.open(name, "w+")
 			end
-
-			local file = require("file")
-			if file.putcontents(name, body) then
-				ota_get_content(ota_content, callback)
-				return
-			else
-				file = nil
-				callback(false)
-				return
-			end
+			f:write(data)
 		end
 	)
+	tcp:on(
+		"connection",
+		function(sck, c)
+			print("Connection: ", c)
+
+			local req =
+				-- add auth
+
+			string.format(
+				"GET %s/%s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\nAccept: */*\r\n\r\n",
+				ota_base_url.path,
+				name,
+				ota_base_url.host
+			)
+
+			tcp:send(req)
+		end
+	)
+
+	tcp:on(
+		"disconnection",
+		function(sck, c)
+			print("Disconnection: ", c)
+			f:close()
+			ota_get_content(ota_base_url, ota_content, callback)
+		end
+	)
+
+	tcp:connect(ota_base_url.port, ota_base_url.host)
 end
 
 function M.ota_update(ota_content, callback)
+	if wifi.sta.status() ~= wifi.STA_GOTIP then
+		callback(false)
+		return
+	end
+
 	local requested = nil
+	local base_url = nil
 	for k, v in pairs(ota_content) do
-		if k == "size" then
+		if k == "size" and v > 0 then
 			local file = require("file")
 			local avail = file.fsinfo()
 			requested = v + 1024 -- tolerance for compilation
@@ -193,12 +233,15 @@ function M.ota_update(ota_content, callback)
 				callback(false)
 				return
 			else
-				print(string.format("OTA update requires %d bytes", requested))
+				print(string.format("OTA update requires %d bytes", v))
 			end
+		end
+		if k == "url" then
+			base_url = parseURL(v)
 		end
 	end
 
-	if not requested then
+	if not requested or not base_url then
 		print("OTA size hasn't been received from server, can't continue")
 		callback(false)
 		return
@@ -206,7 +249,7 @@ function M.ota_update(ota_content, callback)
 
 	for k, v in pairs(ota_content) do
 		if k == "files" then
-			ota_get_content(v, callback)
+			ota_get_content(base_url, v, callback)
 			return
 		end
 	end
