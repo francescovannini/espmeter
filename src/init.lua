@@ -74,33 +74,19 @@ local function compile_lua()
 	file = nil
 end
 
+local _, extendedbr = require("node").bootreason()
+local t = 1
+if extendedbr == 0 then
+	t = 5000
+end
+
 local tmr = require("tmr")
 tmr.create():alarm(
-	2000,
+	t,
 	tmr.ALARM_SINGLE,
 	function()
 		tmr = nil
-
-		-- local l = file.list("%.lc$")
-		-- for k, _ in pairs(l) do
-		-- 	print("Removing " .. k)
-		-- 	file.remove(k)
-		-- end
-
 		compile_lua()
-
-		--local tests = require("tests")
-		--tests.timekeeping()
-		--tmr.wdclr()
-		--tests.bitshift()
-		--tmr.wdclr()
-		--tests.rtcmem()
-		-- tests.post()
-		--tests.tinypoll()
-		--tests.log()
-		--tests._unload()
-		--tests = nil
-
 		local gascounter = require("gascounter")
 		gascounter()
 	end

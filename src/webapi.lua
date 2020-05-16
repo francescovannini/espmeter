@@ -105,7 +105,12 @@ function M.server_sync(content, callback) -- callback(result, ota_update)
 					end,
 					function(reason, _)
 						log("SNTP sync failed: " .. tostring(reason))
-						callback(false, nil)
+						if not content then
+							log(string.format("No content to POST."))
+							callback(false, nil)
+						else
+							do_post(content, callback)
+						end
 					end
 				)
 			else

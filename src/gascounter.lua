@@ -56,6 +56,7 @@ return function()
 
 		-- Sleep until o'clock and align Tiny when waking up
 		if clock_calibration_status == conf.time.calibration_cycles then
+			memtools._unload()
 			memtools = nil
 			local webapi = require("webapi")
 			webapi.server_sync(
@@ -64,6 +65,7 @@ return function()
 					if sync_result then
 						memtools = require("memtools")
 						memtools.rtcmem_set_clock_calibration_status(clock_calibration_status)
+						memtools._unload()
 						memtools = nil
 					else
 						log("Error during time synchronization.")
@@ -75,6 +77,7 @@ return function()
 				return
 			end
 		else -- Sleep for the clock calibration interval
+			memtools._unload()
 			memtools = nil
 			local webapi = require("webapi")
 			webapi.server_sync(
@@ -83,11 +86,12 @@ return function()
 					if sync_result then
 						memtools = require("memtools")
 						memtools.rtcmem_set_clock_calibration_status(clock_calibration_status)
+						memtools._unload()
 						memtools = nil
 					else
 						log("Error during time synchronization.")
 					end
-					sleep.seconds(conf.time.calibration_sleep_time)
+					sleep.seconds(conf.time.calibration_sleep_time, true)
 				end
 			)
 			do
@@ -109,7 +113,31 @@ return function()
 	if second_of_day > ((24 * 3600) - conf.time.drift_margin) or second_of_day < conf.time.drift_margin then
 		memtools.tiny2rtc(7)
 
+		-- log("Writing test data in slots")
+		-- local y = 0
+		-- local sum = 0
+		-- for i = 0, 7 do -- 8 Slots, 3 hour each = 24h...
+		-- 	local data32 = {}
+		-- 	local checksum = 64
+		-- 	for j = 1, 9 do -- ...each has 10 32-bit integers...
+		-- 		y = 128
+		-- 		data32[j] = memtools.int8_to_32(y, y + 1, y + 2, y + 3)
+		-- 		sum = sum + y + (y + 1) + (y + 2) + (y + 3)
+		-- 		checksum = checksum + y + (y + 1) + (y + 2) + (y + 3)
+		-- 		--y = (y + 4) % 256
+		-- 	end
+
+		-- 	-- Last byte of slot contains the checksum
+		-- 	checksum = checksum + y + (y + 1) + (y + 2)
+		-- 	data32[10] = memtools.int8_to_32(y, y + 1, y + 2, checksum % 256)
+		-- 	sum = sum + y + (y + 1) + (y + 2) + (checksum % 256)
+
+		-- 	memtools.rtcmem_write_log_slot(i, data32)
+		-- 	tmr.wdclr()
+		-- end
+
 		local content = memtools.rtcmem_read_log_json()
+		memtools._unload()
 		memtools = nil
 
 		local webapi = require("webapi")
@@ -120,6 +148,7 @@ return function()
 					log("Content posted, clearing RTC")
 					memtools = require("memtools")
 					memtools.rtcmem_clear_log()
+					memtools._unload()
 					memtools = nil
 				else
 					log("Error during POST") --TODO repost after a delay maybe or store to fs?

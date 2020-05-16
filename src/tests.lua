@@ -220,6 +220,42 @@ function M.log()
     end
 end
 
+-- Proves https://github.com/nodemcu/nodemcu-firmware/issues/1472 has not been solved yet
+function M.wifiresume()
+    local memtools = require("memtools")
+    local sleep = require("sleep")
+    local tmr = require("tmr")
+
+    log("Tests Wi-Fi resume after rtctime.dsleep() and power consumption.")
+
+    if memtools.rtcmem_get_clock_calibration_status() == 65 then
+        memtools.rtcmem_set_clock_calibration_status(66)
+        log("Idling 10 seconds: Wi-Fi is now supposed to be on (consumption ~70mA)")
+        tmr.create():alarm(
+            10000,
+            tmr.ALARM_SINGLE,
+            function()
+                sleep.seconds(1, false)
+            end
+        )
+    else
+        if memtools.rtcmem_get_clock_calibration_status() == 66 then
+            memtools.rtcmem_set_clock_calibration_status(65)
+            log("Idling 10 seconds: Wi-Fi is now supposed to be off (consumption ~12mA)")
+            tmr.create():alarm(
+                10000,
+                tmr.ALARM_SINGLE,
+                function()
+                    sleep.seconds(1, true)
+                end
+            )
+        else
+            memtools.rtcmem_set_clock_calibration_status(65)
+            sleep.seconds(1, true)
+        end
+    end
+end
+
 function M._unload()
     package.loaded["tests"] = nil
 end

@@ -23,7 +23,7 @@ function M.seconds(s, wifi_wakeup_on)
 
 	log(
 		string.format(
-			"Deep sleep until %s (%d seconds from now). Wi-Fi available at wakeup: %s",
+			"Deep sleep until %s (%d seconds from now). Wi-Fi on at wakeup: %s",
 			tz.time_to_string(tz.get_local_time() + s),
 			s,
 			tostring(wifi_wakeup_on)
@@ -35,7 +35,7 @@ function M.seconds(s, wifi_wakeup_on)
 		1000,
 		tmr.ALARM_SINGLE,
 		function()
-			rtctime.dsleep(1000000 * (s - 1), wifi_opt)
+			rtctime.dsleep(1000000 * (s - 1), wifi_opt) --TODO check, it seems wifi is always on
 		end
 	)
 

@@ -25,8 +25,8 @@ conf.net.dns_secondary_server = "192.168.1.64"
 conf.net.api_endpoint = "http://test.francescovannini.com/gascounter_web/post.php"
 
 conf.net.ntp = {}
-conf.net.ntp.server = "raspitest_w.francescovannini.com"
-conf.net.ntp.enabled = true
+conf.net.ntp.server = "192.168.1.64"
+conf.net.ntp.enabled = false
 
 conf.time = {}
 conf.time.timezone = "brussels.zone"
