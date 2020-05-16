@@ -79,7 +79,7 @@ return function()
 			local webapi = require("webapi")
 			webapi.server_sync(
 				false,
-				function(sync_result, ota_update)
+				function(sync_result, _)
 					if sync_result then
 						memtools = require("memtools")
 						memtools.rtcmem_set_clock_calibration_status(clock_calibration_status)
@@ -115,7 +115,7 @@ return function()
 		local webapi = require("webapi")
 		webapi.server_sync(
 			content,
-			function(sync_result, ota_update)
+			function(sync_result, _)
 				if sync_result then
 					log("Content posted, clearing RTC")
 					memtools = require("memtools")
