@@ -1,3 +1,5 @@
+local M = {}
+
 local rtcmem = require("rtcmem")
 local tmr = require("tmr")
 local conf = require("conf")
@@ -5,8 +7,6 @@ local rtctime = require("rtctime")
 
 local rtc_mem_log_address = 11
 local rtc_mem_clock_cal_address = 10
-
-local M = {}
 
 function M.int32_to_8(value)
 	local bit = require("bit")
@@ -62,26 +62,16 @@ function M.rtcmem_read_log_slot(slot)
 end
 
 function M.rtcmem_clear_log()
-	--print("Clearing RTC log.")
 	for i = 0, 79 do
 		rtcmem.write32(rtc_mem_log_address + i, i)
 	end
 end
 
 function M.rtcmem_erase()
-	--print("Clearing RTC mem data...")
 	for i = 0, 127 do
 		rtcmem.write32(i, 0)
 	end
 end
-
--- function M.rtcmem_dump()
--- 	print("Content of RTC memory:")
--- 	for i = 0, 127 do
--- 		local a, b, c, d = M.int32_to_8(rtcmem.read32(i))
--- 		print(string.format("[%03d] %02x %02x %02x %02x", i, a, b, c, d))
--- 	end
--- end
 
 --[[
 typedef struct pulse_log_t {

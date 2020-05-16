@@ -58,34 +58,6 @@
 
 ]] --
 
--- encoding
-local function b64enc(data)
-	local table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-	return ((data:gsub(
-		".",
-		function(x)
-			local r, b = "", x:byte()
-			for i = 8, 1, -1 do
-				r = r .. (b % 2 ^ i - b % 2 ^ (i - 1) > 0 and "1" or "0")
-			end
-			return r
-		end
-	) .. "0000"):gsub(
-		"%d%d%d?%d?%d?%d?",
-		function(x)
-			if (#x < 6) then
-				return ""
-			end
-			local c = 0
-			for i = 1, 6 do
-				c = c + (x:sub(i, i) == "1" and 2 ^ (6 - i) or 0)
-			end
-			return table:sub(c + 1, c + 1)
-		end
-	) .. ({"", "==", "="})[#data % 3 + 1])
-end
-
-
 local function compile_lua()
 	local file = require("file")
 	local node = require("node")
@@ -107,6 +79,8 @@ tmr.create():alarm(
 	2000,
 	tmr.ALARM_SINGLE,
 	function()
+		tmr = nil
+
 		-- local l = file.list("%.lc$")
 		-- for k, _ in pairs(l) do
 		-- 	print("Removing " .. k)
@@ -115,22 +89,19 @@ tmr.create():alarm(
 
 		compile_lua()
 
-		local tests = require("tests")
+		--local tests = require("tests")
 		--tests.timekeeping()
 		--tmr.wdclr()
 		--tests.bitshift()
 		--tmr.wdclr()
-		tests.rtcmem()
-		-- tmr.wdclr()
-		-- print(node.heap())
-		tests.post_and_ota()
+		--tests.rtcmem()
+		-- tests.post()
 		--tests.tinypoll()
+		--tests.log()
+		--tests._unload()
 		--tests = nil
 
-		-- local gascounter = require("gascounter")
-		-- gascounter()
-
-		print(b64enc("This is a test"))
-
+		local gascounter = require("gascounter")
+		gascounter()
 	end
 )

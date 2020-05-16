@@ -58,16 +58,11 @@ function M.get_local_time()
   end
 
   if sec < tstart or sec >= tend then
-    -- Ignore errors
-    local ok, msg =
-      pcall(
+    pcall(
       function()
         load(sec)
       end
     )
-    if not ok then
-      print(msg)
-    end
   end
   return toffset + sec, usec, rate
 end
@@ -90,7 +85,7 @@ function M.time_to_string(time)
 end
 
 function M._unload()
-	package.loaded["tz"] = nil
+  package.loaded["tz"] = nil
 end
 
 return M

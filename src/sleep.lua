@@ -2,6 +2,8 @@ local conf = require("conf")
 local rtctime = require("rtctime")
 local tmr = require("tmr")
 local tz = require("tz")
+local log = require("log")
+
 tz.setzone(conf.time.timezone)
 
 local M = {}
@@ -19,7 +21,7 @@ function M.seconds(s, wifi_wakeup_on)
 		wifi_wakeup_on = false
 	end
 
-	print(
+	log(
 		string.format(
 			"Deep sleep until %s (%d seconds from now). Wi-Fi available at wakeup: %s",
 			tz.time_to_string(tz.get_local_time() + s),

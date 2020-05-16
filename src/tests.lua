@@ -1,5 +1,7 @@
 local M = {}
 
+local log = require("log")
+
 function M.timekeeping()
     local memtools = require("memtools")
     local conf = require("conf")
@@ -7,10 +9,10 @@ function M.timekeeping()
     local tz = require("tz")
     local node = require("node")
 
-    print("Timekeeping test")
+    log("Timekeeping test")
 
     if not tz.setzone(conf.time.timezone) then
-        print(string.format("Can'time_cal find %s timezone file. Halting.", conf.time.timezone))
+        log(string.format("Can'time_cal find %s timezone file. Halting.", conf.time.timezone))
         do
             return
         end
@@ -18,7 +20,7 @@ function M.timekeeping()
 
     local time = tz.get_local_time()
     local second_of_day = tz.get_second_of_day(time)
-    print(
+    log(
         string.format(
             "Local time is %s (tz: %s) - Seconds since midnight: %d",
             tz.time_to_string(time),
@@ -35,7 +37,7 @@ function M.timekeeping()
 
     if clock_calibration_status < conf.time.calibration_cycles then
         clock_calibration_status = clock_calibration_status + 1
-        print(
+        log(
             string.format(
                 "Clock calibration cycle: %d out of %d",
                 clock_calibration_status,
@@ -49,7 +51,7 @@ function M.timekeeping()
         end
     end
 
-    print(string.format("Test completed. Current time should be %s", tz.time_to_string()))
+    log(string.format("Test completed. Current time should be %s", tz.time_to_string()))
 end
 
 function M.bitshift()
@@ -57,17 +59,17 @@ function M.bitshift()
     local memtools = require("memtools")
     local ax, bx, cx, dx, v
 
-    print("Testing bitshifting on integer up to 2^32 (it's going to take a while)...")
+    log("Testing bitshifting on integer up to 2^32 (it's going to take a while)...")
 
     for d = 0, 255 do
         for c = 0, 255 do
-            print(string.format("c=%d d=%d", c, d))
+            log(string.format("c=%d d=%d", c, d))
             for b = 0, 255 do
                 for a = 0, 255 do
                     v = memtools.int8_to_32(a, b, c, d)
                     ax, bx, cx, dx = memtools.int32_to_8(v)
                     if not (ax == a and bx == b and cx == c and dx == d) then
-                        print(
+                        log(
                             string.format(
                                 "Error at %d -> a:%d->%d b:%d->%d c:%d->%d e:%d->%d",
                                 v,
@@ -95,15 +97,15 @@ function M.rtcmem()
 
     memtools.rtcmem_erase()
 
-    print("Testing rtcmem_set_clock_calibration_status")
+    log("Testing rtcmem_set_clock_calibration_status")
     memtools.rtcmem_set_clock_calibration_status(128)
     if not memtools.rtcmem_get_clock_calibration_status() == 128 then
-        print("Error.")
+        log("Error.")
     else
-        print("Ok.")
+        log("Ok.")
     end
 
-    print("Writing log slots")
+    log("Writing log slots")
     local y = 0
     local sum = 0
     for i = 0, 7 do -- 8 Slots, 3 hour each = 24h...
@@ -125,7 +127,7 @@ function M.rtcmem()
         memtools.rtcmem_write_log_slot(i, data32)
     end
 
-    print("Comparing log slots")
+    log("Comparing log slots")
     local testsum = 0
     for i = 0, 7 do -- 8 Slots, 3 hour each = 24h...
         local data32 = memtools.rtcmem_read_log_slot(i)
@@ -135,19 +137,21 @@ function M.rtcmem()
             testsum = testsum + a + b + c + d
             slot_dump = string.format("%s %02x %02x %02x %02x", slot_dump, a, b, c, d)
         end
-        print(slot_dump)
+        log(slot_dump)
     end
 
     if not sum == testsum then
-        print(string.format("Failed: %d != %d", sum, testsum))
+        log(string.format("Failed: %d != %d", sum, testsum))
     end
 
     tmr.wdclr()
+    memtools = nil
+    tmr = nil
 
-    print("OK.")
+    log("OK.")
 end
 
-function M.post_and_ota()
+function M.post()
     local memtools = require("memtools")
     local content = memtools.rtcmem_read_log_json()
     memtools._unload()
@@ -155,25 +159,11 @@ function M.post_and_ota()
     local webapi = require("webapi")
     webapi.server_sync(
         content,
-        function(result, ota_content)
+        function(result, _) -- second parameter is the OTA update content from server
             if result then
-                print("POST ok.")
-                if ota_content ~= nil then
-                    webapi.ota_update(
-                        ota_content,
-                        function(ota_result)
-                            if ota_result then
-                                print("OTA update OK!")
-                            else
-                                print("OTA failed")
-                            end
-                        end
-                    )
-                else
-                    print("No OTA update available")
-                end
+                log("POST ok.")
             else
-                print("POST failed (so no OTA performed)")
+                log("POST failed (so no OTA performed)")
             end
         end
     )
@@ -185,7 +175,7 @@ function M.tinypoll()
     local j = 0
     local c = 60
 
-    print("Contiuously polling TINY...")
+    log("Contiuously polling TINY...")
 
     local t = tmr.create()
     t:alarm(
@@ -193,7 +183,7 @@ function M.tinypoll()
         tmr.ALARM_SEMI,
         function()
             if c == 60 then
-                print(string.format("Iteration ", j))
+                log(string.format("Iteration ", j))
                 memtools.tiny2rtc(0)
                 local content = memtools.rtcmem_read_log_json()
                 local webapi = require("webapi")
@@ -201,9 +191,9 @@ function M.tinypoll()
                     content,
                     function(result, ota_update)
                         if result then
-                            print("Post succesful")
+                            log("Post succesful")
                         else
-                            print("Post failed")
+                            log("Post failed")
                         end
                         j = j + 1
                         c = 1
@@ -211,12 +201,27 @@ function M.tinypoll()
                     end
                 )
             else
-                print("Time: " .. c)
+                log("Time: " .. c)
                 c = c + 1
                 t:start()
             end
         end
     )
+end
+
+function M.log()
+    for i = 0, 1000, 1 do
+        log(
+            string.format(
+                "%d Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+                i
+            )
+        )
+    end
+end
+
+function M._unload()
+    package.loaded["tests"] = nil
 end
 
 return M
