@@ -1,7 +1,7 @@
 local conf = {}
 
 conf.log = {}
-conf.log.enabled = true
+conf.log.enabled = false
 conf.log.filename = "debug.log"
 conf.log.maxsize = 128 * 1024
 conf.log.maxfiles = 16
@@ -30,8 +30,7 @@ conf.net.ntp.enabled = false
 
 conf.time = {}
 conf.time.timezone = "brussels.zone"
---conf.time.calibration_sleep_time = 600
-conf.time.calibration_sleep_time = 10
+conf.time.calibration_sleep_time = 3600
 conf.time.calibration_cycles = 3
 conf.time.drift_margin = 300
 

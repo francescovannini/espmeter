@@ -173,6 +173,26 @@ return function()
 		s = s + 1
 	end
 
+	-- Clock sync at noon
+	if math.abs((12 * 3600) - second_of_day) <= conf.time.drift_margin then
+		log(string.format("Syncing clock mid-day"))
+		local webapi = require("webapi")
+		webapi.server_sync(
+			false,
+			function(sync_result, _)
+				if sync_result then
+					log("Clock synced at mid-day")
+				else
+					log("Error syncing clock")
+				end
+				sleep.oclock()
+			end
+		)
+		do
+			return
+		end
+	end
+
 	sleep.oclock()
 
 	do

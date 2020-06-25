@@ -2,6 +2,10 @@ return function(s)
     local file = require("file")
     local conf = require("conf")
 
+    local tz = require("tz")
+    local buf = string.format("[%s] %s", tz.time_to_string(), s)
+    print(buf)
+
     if not conf.log then
         return
     end
@@ -26,11 +30,8 @@ return function(s)
     local filename = string.format("log.%d", min)
 
     local f = file.open(filename, "a+")
-    local tz = require("tz")
-    local buf = string.format("[%s] %s", tz.time_to_string(), s)
     f:write(buf .. "\n")
     f:close()
-    print(buf)
     tz._unload()
 
     local stats = file.stat(filename)
