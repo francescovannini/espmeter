@@ -1,6 +1,6 @@
 #!/bin/bash
 
-target="gascounter_tiny13"
+target="espmeter_tiny13"
 
 cd cmake-build-release
 make clean

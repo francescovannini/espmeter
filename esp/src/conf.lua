@@ -22,7 +22,7 @@ conf.net.netmask = "255.255.255.0"
 conf.net.gateway = "192.168.1.1"
 conf.net.dns_primary_server = "192.168.1.64"
 conf.net.dns_secondary_server = "192.168.1.64"
-conf.net.api_endpoint = "http://test.francescovannini.com/gascounter_web/post.php"
+conf.net.api_endpoint = "http://test.francescovannini.com/espmeter_web/post.php"
 
 conf.net.ntp = {}
 conf.net.ntp.server = "192.168.1.64"

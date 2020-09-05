@@ -1,6 +1,6 @@
 #include "twi.h"
 
-/* Initialize twi slave mode */
+/* Initialize TWI slave mode */
 void twi_slave_init(void) {
     SET_SDA();
     TWI_INT_INIT();
@@ -82,7 +82,7 @@ inline uint8_t read_byte(void) {
     // Let SCL go low first. MCU comes here while SCL is still high
     while (GET_SCL());
 
-    //Read 8 bits from master, respond with ACK. SCL could be high or low depending on CPU speed
+    //Read 8 bits from master, respond with ACK. 
     for (uint8_t index = 0; index < 8; index++) {
 
         while (!GET_SCL());

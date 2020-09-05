@@ -1,6 +1,6 @@
 -- MySQL dump 10.17  Distrib 10.3.23-MariaDB, for debian-linux-gnueabi (armv7l)
 --
--- Host: localhost    Database: gascounter
+-- Host: localhost    Database: espmeter
 -- ------------------------------------------------------
 -- Server version	10.3.23-MariaDB-0+deb10u1
 

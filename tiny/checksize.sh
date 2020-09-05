@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-target="gascounter_tiny13"
+target="espmeter_tiny13"
 codelimit=1024
 datalimit=64
 
