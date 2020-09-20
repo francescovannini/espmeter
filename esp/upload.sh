@@ -1,4 +1,7 @@
 #!/bin/bash
+
+PORT="/dev/ttyUSB3"
+
 if [ -f "upload.lst" ]; then
 	last=$(cat upload.lst)
 else
@@ -7,17 +10,19 @@ fi
 
 read -p "Power on the board, then press ENTER immediately after"
 
+touch boot.lock
+nodemcu-uploader --port $PORT upload boot.lock  || exit 1
 cd src
-nodemcu-uploader file remove init.lua || exit 1
-if [ "$1" == "-i" ]; then
-	list=$(find *.lua ! -name "init.lua" -newermt "$last" -printf "%f ")
-	list=$list"init.lua"
-	echo "Uploading $list"
-	nodemcu-uploader --baud 921600 --timeout 60 upload $list || exit 1
-else
+if [ "$1" == "-a" ]; then
+	list=$(find * -printf "%f ")	
 	echo "Uploading all files in src/"
-	nodemcu-uploader --baud 921600 --timeout 60 upload * || exit 1
+else
+	list=$(find * -newermt "$last" -printf "%f ")	
+	echo "Uploading new files: $list"	
 fi
+
+nodemcu-uploader --port $PORT --baud 115200 --timeout 60 upload $list || exit 1
+nodemcu-uploader --port $PORT file remove boot.lock  || exit 1
 cd ..
 date "+%F %T" > "upload.lst"
 

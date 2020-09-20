@@ -2,6 +2,8 @@
 
 target="espmeter_tiny13"
 
+./build.sh
+
 cd cmake-build-release
 make clean
 make || exit 1

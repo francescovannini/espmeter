@@ -36,6 +36,11 @@ tmr.create():alarm(
 	tmr.ALARM_SINGLE,
 	function()
 		tmr = nil
+		local file = require("file")
+		if file.exists("boot.lock") then
+			return
+		end
+
 		compile_lua()
 		local espmeter = require("espmeter")
 		espmeter()
