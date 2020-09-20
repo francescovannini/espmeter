@@ -207,6 +207,37 @@ function M.tiny2rtc(slot)
 	end
 end
 
+-- function M.tiny_dump()
+-- 	-- Pin mapping between ESP and NodeMCU IO
+-- 	--  IO  ESP     IO  ESP
+-- 	--  0   GPIO16  7   GPIO13
+-- 	--  1   GPIO5   8   GPIO15
+-- 	--  2   GPIO4   9   GPIO3
+-- 	--  3   GPIO0   10  GPIO1
+-- 	--  4   GPIO2   11  GPIO9
+-- 	--  5   GPIO14  12  GPIO10
+-- 	--  6   GPIO12
+
+-- 	local id = 0
+-- 	local sda = 1
+-- 	local scl = 2
+-- 	local slv = 0x5d
+
+-- 	local i2c = require("i2c")
+
+-- 	i2c.setup(id, sda, scl, i2c.SLOW)
+-- 	i2c.address(id, slv, i2c.RECEIVER)
+
+-- 	local rec = i2c.read(id, 40)
+-- 	local dump = " "
+
+-- 	for i = 1, #rec do
+-- 		dump = dump .. " " .. string.byte(rec:sub(i, i))
+-- 	end
+
+-- 	return dump
+-- end
+
 function M._unload()
 	package.loaded["memtools"] = nil
 end
