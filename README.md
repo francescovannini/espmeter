@@ -13,6 +13,8 @@ equipped with a small permanent magnet embedded in one (usually the last) drum
 of the counter. While this project has been designed with gas meters in mind, 
 it could theoretically work with other meters, such as water meters.
 
+![Battery compartment on top and electronics on the bottom](docs/pics/boxed.jpg)
+
 ## Design
 
 The device has been designed to be extremely easy to build, with a small number
@@ -32,7 +34,7 @@ recording part. The Tiny13 has a very low power consumption and can stay
 asleep for most of the time. The ESP would then communicate with the Tiny13 
 at regular intervals and then once per day would transmit data via Wi-Fi.
 
-![The assembled thing](docs/pics/top.jpg)
+![The guts](docs/pics/top.jpg)
 
 ## Sampling frequency
 
@@ -121,7 +123,7 @@ What it is sent to the ESP is contained in the following struct:
 
 * checksum is a simple modulo 256 of sum of the other bytes of the struct
 * vcc is updated every 3 hours and it's the output of the ADC used to measure
-battery voltage
+battery voltage (see below)
 * ticks is the number of seconds since last communication with the ESP
 * frames is an array of 36 bytes, every byte is the number of pulses recorded in
 the corresponding 5 minutes interval. 36 * 5m = 180m = 3h
@@ -158,4 +160,55 @@ Here the RTC memory map (unit: 32bit array)
                 Checksum is performed on the Tiny13 and checked on the ESP 
                 before sending the slot content to the server
 
+
+## Compensate for ADC (in-)accuracy
+
+The Tiny13 ADC is used to monitor batteries voltage so the user can be alerted
+when they need to be replaced. The Tiny13 ADC is a 10-bits ADC configured to
+compare the Tiny13 VCC with pin PB2, which is fed the unregulated battery 
+voltage through a voltage divider made with two resistors of nominally equal 
+value. In the schematics, these resistors are 3.9MΩ but they can be replaced
+with other values, as long as they are the same. A high value will limit the 
+current drain and this can be usful to prolong battery life. 
+
+The ADC is a 10-bits but only 8 are used here and because the two resistors 
+forming the voltage divider are unlikely to be identical, it's advisable to
+run a series of simple measurements to tune the Tiny13 reading.
+
+With a variable voltage supply, we measured different input voltages from 6.65V
+down to 2.82V, filling the table below; we are interested in the 
+V<sub>BATT</sub> / V<sub>ADC</sub>
+column which relates the unregulated battery voltage with the voltage sampled
+by the ADC. Three fresh AA battery will provide a maximum of 4.5V and it is 
+unlikely that they will be able to provide enough current to power the circuit 
+once their output will be below 3V; in practice the useful interval is 
+narrower and you can use a set of fresh batteries and a set of almost depleted
+ones to take two measurements and average them, it should give you a good enough
+accuracy. 
+
+|V<sub>REF</sub>|V<sub>BATT</sub>|V<sub>PB2</sub>|ADLH|V<sub>ADC</sub>|V<sub>BATT</sub> / V<sub>ADC</sub>|V<sub>BATT</sub> / V<sub>PB2</sub>|
+|----|-----|-----|----|-----|----------|----------|
+|3.3 |6.65 |2.75 |255 |3.300|2.015     |2.418     |
+|3.3 |5.47 |2.26 |209 |2.705|2.022     |2.420     |
+|3.3 |5.03 |2.08 |192 |2.485|2.024     |2.418     |
+|3.3 |4.41 |1.831|169 |2.187|2.016     |2.409     |
+|3.3 |3.99 |1.655|153 |1.980|2.015     |2.411     |
+|3.3 |3.41 |1.417|130 |1.682|2.027     |2.406     |
+|2.87|2.92 |1.213|128 |1.441|2.027     |2.407     |
+|2.76|2.82 |1.169|127 |1.375|2.052     |2.412     |
+
+Fields:
+* V<sub>REF</sub>: regulated voltage read by multimeter
+* V<sub>BATT</sub>: battery voltage read by multimeter
+* V<sub>PB2</sub>: divider voltage read by multimeter
+* ADLH: value of the ADC register
+* V<sub>ADC</sub>: calculated voltage from ADC (=Vref / 255 * ADLH)
+* V<sub>BATT</sub> / V<sub>ADC</sub>: ratio between battery voltage read by multimeter and by ADC
+* V<sub>BATT</sub> / V<sub>PB2</sub>: ratio between battery voltage and voltage divider (read by multimeter)
+
+As expected, the voltage divider formed by the two equal resistors is not 
+producing half of the input voltage probably due to tolerance in resistor
+value. On the other hand, the ADC luckily enough has also some offset which 
+compensates almost perfectly, producing a readout of almost exactly 1/2 of the 
+battery voltage. 
 
