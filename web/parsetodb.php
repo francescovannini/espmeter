@@ -1,6 +1,6 @@
 <?php
 
-require_once("dbconfig.php");
+require_once("config.php");
 
 function parse_log($body)
 {
@@ -46,7 +46,7 @@ function parse_log($body)
 		// Insert battery voltage (sampled every 3 hours)
 		$vcc_ts = $log_begin + $hour * 3 * 3600;
 		$stmt = $mysqli->prepare("INSERT INTO vcc (idlog, ts, vcc) VALUES (?, FROM_UNIXTIME(?), ?)");
-		$stmt->bind_param("iid", $log_id, $vcc_ts, $content->v); //TODO fix VCC calculation
+		$stmt->bind_param("iid", $log_id, $vcc_ts, $content->v * VCC_ADJ);
 		if (!$stmt->execute()) {
 			die("Failed inserting VCC log: " . $mysqli->error . "\n");
 		}
