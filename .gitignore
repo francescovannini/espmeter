@@ -1,2 +1,18 @@
+<<<<<<< HEAD
 minicom.cap
 upload.lst
+=======
+esp/log.0
+esp/log.1
+esp/log.2
+esp/log.3
+esp/log.4
+esp/log.5
+esp/log.0.f
+esp/log.1.f
+esp/log.2.f
+esp/log.3.f
+esp/log.4.f
+esp/log.5.f
+esp/loglist.txt
+>>>>>>> 3e89350... Added log tools scripts
