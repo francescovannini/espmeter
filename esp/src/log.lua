@@ -1,16 +1,19 @@
-return function(s)
+return function(s, level) --1: info, 2: warning 3: error
     local file = require("file")
     local conf = require("conf")
-
     local tz = require("tz")
-    local buf = string.format("[%s] %s", tz.time_to_string(), s)
+
+    local levels = {"NFO", "WRN", "ERR"}
+    level = level or 1
+
+    local buf = string.format("[%s][%s] %s", tz.time_to_string(), levels[level], s)
     print(buf)
 
     if not conf.log then
         return
     end
 
-    if not conf.log.enabled then
+    if level < conf.log.level then
         return
     end
 
