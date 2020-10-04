@@ -24,24 +24,40 @@ local function compile_lua()
 	file = nil
 end
 
+local tmr = require("tmr")
+local log = require("log")
+
 local _, extendedbr = require("node").bootreason()
 local t = 1
 if extendedbr == 0 then
 	t = 5000
 end
 
-local tmr = require("tmr")
 tmr.create():alarm(
 	t,
 	tmr.ALARM_SINGLE,
 	function()
-		tmr = nil
 		local file = require("file")
 		if file.exists("boot.lock") then
 			return
 		end
 
+		--  Watchdog timer to avoid draining batteries if execution gets stuck
+		tmr.create():alarm(
+			30000,
+			tmr.ALARM_SINGLE,
+			function()
+				log("Watchdog timer triggered, deep sleeping 1h.", 3)
+				log = nil
+				local rtctime = require("rtctime")
+				rtctime.dsleep(1000000 * 3600, 0) -- Wi-Fi on
+			end
+		)
+
+		tmr = nil
+
 		compile_lua()
+
 		local espmeter = require("espmeter")
 		espmeter()
 	end

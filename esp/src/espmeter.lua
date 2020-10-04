@@ -13,24 +13,6 @@ return function()
 		end
 	end
 
-	--  Safety timer to avoid draining batteries if execution gets stuck
-	local tmr = require("tmr")
-	tmr.create():alarm(
-		60000,
-		tmr.ALARM_SINGLE,
-		function()
-			log(string.format("Safety timer triggered! Sleeping 1h, Wi-Fi on on resume."))
-			tmr.create():alarm(
-				1000,
-				tmr.ALARM_SINGLE,
-				function()
-					local rtctime = require("rtctime")
-					rtctime.dsleep(1000000 * 3600, 0) -- Wi-Fi on
-				end
-			)
-		end
-	)
-
 	local _, bootreason = node.bootreason()
 	local time = tz.get_local_time()
 	local second_of_day = tz.get_second_of_day(time)
