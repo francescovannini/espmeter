@@ -4,9 +4,7 @@ require_once("config.php");
 
 function parse_log($body)
 {
-
-	global $now;
-
+	$now = time();
 	$data = json_decode($body);
 	$log_ts = $data->ts;
 	$drift = $now - $log_ts;
@@ -46,7 +44,8 @@ function parse_log($body)
 		// Insert battery voltage (sampled every 3 hours)
 		$vcc_ts = $log_begin + $hour * 3 * 3600;
 		$stmt = $mysqli->prepare("INSERT INTO vcc (idlog, ts, vcc) VALUES (?, FROM_UNIXTIME(?), ?)");
-		$stmt->bind_param("iid", $log_id, $vcc_ts, $content->v * VCC_ADJ);
+		$vcc = $content->v * VCC_ADJ;
+		$stmt->bind_param("iid", $log_id, $vcc_ts, $vcc);
 		if (!$stmt->execute()) {
 			die("Failed inserting VCC log: " . $mysqli->error . "\n");
 		}

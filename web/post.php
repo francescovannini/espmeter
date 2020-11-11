@@ -1,6 +1,15 @@
 <?php
+<<<<<<< HEAD
 	
 	$body = file_get_contents('php://input');
+=======
+
+require_once("parsetodb.php");
+
+$body = file_get_contents('php://input');
+
+if (strlen($body) > 0) {
+>>>>>>> 2e9d110... Bugfixes
 	$fp = fopen('request.log', 'a');
 	fwrite($fp, date('m/d/Y h:i:s a', time()) . ' - ' . $body . chr(10));
 	fclose($fp);
