@@ -7,13 +7,30 @@ if ($mysqli->connect_errno) {
     die("Error: " . $mysqli->connect_error . "\n");
 }
 
+switch ($_GET["agg"]) {
+    case "day":
+        $source = "pulses_over_day";
+        break;
+
+    case "hour":
+        $source = "pulses_over_hour";
+        break;
+
+    default:
+        $source = "pulses_over_time";
+        break;
+}
+
 ob_start("ob_gzhandler");
 header('Content-Type: text/plain');
 header('Cache-Control: no-cache');
 
 printf("ts,dm3\n");
 
-if ($result = $mysqli->query("SELECT ts, (pulses * 10) as dm3 FROM pulses_over_time", MYSQLI_USE_RESULT)) {
+if ($result = $mysqli->query(
+    "SELECT ts, (pulses * 10) as dm3 FROM " . $source,
+    MYSQLI_USE_RESULT
+)) {
     while ($line = $result->fetch_assoc()) {
         printf("%s,%s\n", $line['ts'], $line['dm3']);
     }

@@ -1,82 +1,100 @@
 <html>
 
 <head>
-    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 
 <body>
-    <div id='myDiv'></div>
+    Aggregate by:
+    <select id="aggregation" onchange="drawGraph()">
+        <option value="day">Day</option>
+        <option value="hour">Hour</option>
+        <option value="5min">5min</option>
+    </select>
+
+    <div id="plot"></div>
 </body>
 
 <script>
 
-    Plotly.d3.csv("chartdata.php", function (err, rows) {
+    function drawGraph() {
 
-        function unpack(rows, key) {
-            return rows.map(function (row) {
-                return row[key];
-            });
-        }
+        document.getElementById("plot").innerHTML="Loading...";
 
-        var trace1 = {
-            type: "scatter",            
-            name: 'dm3',
-            x: unpack(rows, 'ts'),
-            y: unpack(rows, 'dm3'),
-            line: { color: '#3399ff' }
-        }
+        aggregation = document.getElementById("aggregation").value;
 
-        var data = [trace1];
+        Plotly.d3.csv("chartdata.php?agg=" + aggregation, function (err, rows) {
 
-        var layout = {
-            title: 'Gas Consumption over time (dm3)',
-            xaxis: {
-                autorange: true,
-                rangeselector: {
-                    buttons: [
-                        {
-                            count: 1,
-                            label: '1d',
-                            step: 'day',
-                            stepmode: 'backward'
-                        },
-                        {
-                            count: 7,
-                            label: '1w',
-                            step: 'day',
-                            stepmode: 'backward'
-                        },
-                        {
-                            count: 1,
-                            label: '1m',
-                            step: 'month',
-                            stepmode: 'backward'
-                        },
-                        {
-                            count: 6,
-                            label: '6m',
-                            step: 'month',
-                            stepmode: 'backward'
-                        },
-                        {
-                            step: 'all'
-                        }
-                    ]
-                },
-                rangeslider: {
-                    autorange: true
-                },
-                type: 'date'
-            },
-            yaxis: {
-                autorange: true,
-                type: 'linear'
+            function unpack(rows, key) {
+                return rows.map(function (row) {
+                    return row[key];
+                });
             }
-        };
 
-        Plotly.newPlot('myDiv', data, layout);
+            var trace1 = {
+                type: "scatter",
+                name: "dm3",
+                x: unpack(rows, "ts"),
+                y: unpack(rows, "dm3"),
+                line: { color: "#3399ff" }
+            }
 
-    })
+            var data = [trace1];
+
+            var layout = {
+                title: "Gas Consumption over time (dm3)",
+                xaxis: {
+                    autorange: true,
+                    rangeselector: {
+                        buttons: [
+                            {
+                                count: 1,
+                                label: "1d",
+                                step: "day",
+                                stepmode: "backward"
+                            },
+                            {
+                                count: 7,
+                                label: "1w",
+                                step: "day",
+                                stepmode: "backward"
+                            },
+                            {
+                                count: 1,
+                                label: "1m",
+                                step: "month",
+                                stepmode: "backward"
+                            },
+                            {
+                                count: 6,
+                                label: "6m",
+                                step: "month",
+                                stepmode: "backward"
+                            },
+                            {
+                                step: "all"
+                            }
+                        ]
+                    },
+                    rangeslider: {
+                        autorange: true
+                    },
+                    type: "date"
+                },
+                yaxis: {
+                    autorange: true,
+                    type: "linear"
+                }
+            };
+
+            document.getElementById("plot").innerHTML="";
+
+            Plotly.newPlot("plot", data, layout);
+
+        })
+    }
+
+    drawGraph();
 
 </script>
 
