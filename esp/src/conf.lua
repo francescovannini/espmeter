@@ -12,8 +12,8 @@ conf.ota.enabled = false
 conf.wifi = {}
 conf.wifi.auto = false
 conf.wifi.save = false
-conf.wifi.ssid = "***REMOVED***"
-conf.wifi.pwd = "***REMOVED***"
+conf.wifi.ssid = "SSID"
+conf.wifi.pwd = "MY_WIFI_PASSWORD"
 
 conf.net = {}
 conf.net.ip = "192.168.1.56"

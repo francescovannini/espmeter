@@ -1,9 +1,5 @@
-//
-// Created by francesco on 24/02/19.
-//
-
-#ifndef I2C_WATCHDOG_MAIN_H
-#define I2C_WATCHDOG_MAIN_H
+#ifndef MAIN_H
+#define MAIN_H
 
 #define CONTROL_PORT_DDR    DDRB
 #define CONTROL_PORT        PORTB
@@ -40,4 +36,4 @@ typedef struct pulse_log_t {
     uint8_t frames[LOG_FRAMES];
 } pulse_log_t;
 
-#endif //I2C_WATCHDOG_MAIN_H
+#endif
