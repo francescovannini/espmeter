@@ -32,17 +32,20 @@ DROP VIEW IF EXISTS `pulses_over_time`;
 CREATE VIEW `pulses_over_time` AS
     SELECT 
         `l`.`ts` + INTERVAL (`c`.`slot` * 5) MINUTE AS `ts`,
-        `c`.`pulses` AS `pulses`
+        `c`.`pulses` AS `pulses`,
+        `vcc`.`vcc` AS `vcc`
     FROM
         (`log` `l`
-        JOIN `counter` `c` ON (`l`.`id` = `c`.`idlog`));
+        JOIN `counter` `c` ON (`l`.`id` = `c`.`idlog`)
+        JOIN `vcc` ON (`l`.`id` = `vcc`.`idlog`));
 
 
 DROP VIEW IF EXISTS `pulses_over_day`;
 CREATE VIEW `pulses_over_day` AS
     SELECT 
         CAST(`pulses_over_time`.`ts` AS DATE) AS `ts`,
-        SUM(`pulses_over_time`.`pulses`) AS `pulses`
+        SUM(`pulses_over_time`.`pulses`) AS `pulses`,
+        MIN(`pulses_over_time`.`vcc`) AS `vcc`
     FROM
         `pulses_over_time`
     GROUP BY CAST(`pulses_over_time`.`ts` AS DATE);
@@ -52,7 +55,8 @@ DROP VIEW IF EXISTS `pulses_over_hour`;
 CREATE VIEW `pulses_over_hour` AS
     SELECT 
         CAST(`pulses_over_time`.`ts` AS DATE) + INTERVAL HOUR(`pulses_over_time`.`ts`) HOUR AS `ts`,
-        SUM(`pulses_over_time`.`pulses`) AS `pulses`
+        SUM(`pulses_over_time`.`pulses`) AS `pulses`,
+        MIN(`pulses_over_time`.`vcc`) AS `vcc`
     FROM
         `pulses_over_time`
     GROUP BY CAST(`pulses_over_time`.`ts` AS DATE) , HOUR(`pulses_over_time`.`ts`);
