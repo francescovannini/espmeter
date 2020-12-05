@@ -25,14 +25,14 @@ ob_start("ob_gzhandler");
 header('Content-Type: text/plain');
 header('Cache-Control: no-cache');
 
-printf("ts,dm3\n");
+printf("ts,m3,vcc\n");
 
 if ($result = $mysqli->query(
-    "SELECT ts, (pulses * 10) as dm3 FROM " . $source,
+    "SELECT ts, (pulses * 0.01) as m3, vcc FROM " . $source,
     MYSQLI_USE_RESULT
 )) {
     while ($line = $result->fetch_assoc()) {
-        printf("%s,%s\n", $line['ts'], $line['dm3']);
+        printf("%s,%s,%.3f\n", $line["ts"], $line["m3"], $line["vcc"]);
     }
 }
 

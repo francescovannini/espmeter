@@ -2,10 +2,11 @@
 
 <head>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <title>ESPMeter</title>
 </head>
 
 <body>
-    Aggregate by:
+    Aggregation:
     <select id="aggregation" onchange="drawGraph()">
         <option value="day">Day</option>
         <option value="hour">Hour</option>
@@ -19,7 +20,7 @@
 
     function drawGraph() {
 
-        document.getElementById("plot").innerHTML="Loading...";
+        document.getElementById("plot").innerHTML = "Loading data...";
 
         aggregation = document.getElementById("aggregation").value;
 
@@ -33,16 +34,25 @@
 
             var trace1 = {
                 type: "scatter",
-                name: "dm3",
+                name: "m3",
                 x: unpack(rows, "ts"),
-                y: unpack(rows, "dm3"),
+                y: unpack(rows, "m3"),
                 line: { color: "#3399ff" }
             }
 
-            var data = [trace1];
+            var trace2 = {
+                type: "scatter",
+                name: "vcc",
+                x: unpack(rows, "ts"),
+                y: unpack(rows, "vcc"),
+                yaxis: "y2",
+                line: { color: "#FF9933" }
+            }
+
+            var data = [trace1, trace2];
 
             var layout = {
-                title: "Gas Consumption over time (dm3)",
+                title: "ESPMeter",
                 xaxis: {
                     autorange: true,
                     rangeselector: {
@@ -83,11 +93,19 @@
                 },
                 yaxis: {
                     autorange: true,
-                    type: "linear"
+                    type: "linear",
+                    title: "Gas consumption (m3)"
+                },
+                yaxis2: {
+                    range: [0, 4.5],
+                    type: "linear",
+                    title: "Battery Voltage",
+                    overlaying: "y",
+                    side: "right"
                 }
             };
 
-            document.getElementById("plot").innerHTML="";
+            document.getElementById("plot").innerHTML = "";
 
             Plotly.newPlot("plot", data, layout);
 
