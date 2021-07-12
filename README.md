@@ -237,3 +237,7 @@ simple as it not particularly interesting to me; I would maybe re-do it in the
 future using maybe a better approach, maybe using something like 
 [Prometheus](prometheus.io).
 
+## As seen on Hackaday
+
+This project has been featured on [Hackaday Newsletter](https://hackaday.com/2021/02/06/the-right-tools-for-the-job/)
+
